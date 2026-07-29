@@ -12,6 +12,7 @@ export function ResumeBuilder() {
     resume,
     loading,
     saving,
+    uploadingPhoto,
     error,
     lastSavedAt,
     setTitle,
@@ -22,6 +23,8 @@ export function ResumeBuilder() {
     experience,
     projects,
     save,
+    uploadPhoto,
+    removePhoto,
   } = useResume()
 
   if (loading) {
@@ -54,7 +57,14 @@ export function ResumeBuilder() {
 
       <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
         <div className="max-h-[calc(100vh-5rem)] space-y-4 overflow-y-auto pr-2">
-          <ContactSection contact={resume.sections.contact} onChange={setContactField} />
+          <ContactSection
+            contact={resume.sections.contact}
+            onChange={setContactField}
+            photoUrl={resume.photoUrl}
+            onUploadPhoto={uploadPhoto}
+            onRemovePhoto={removePhoto}
+            uploadingPhoto={uploadingPhoto}
+          />
           <SummarySection summary={resume.sections.summary} onChange={setSummary} />
           <EducationSection
             education={resume.sections.education}

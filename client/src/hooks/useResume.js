@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { listResumes, createResume, updateResume } from '../api/resumeApi'
+import {
+  listResumes,
+  createResume,
+  updateResume,
+  uploadResumePhoto as uploadResumePhotoApi,
+  removeResumePhoto as removeResumePhotoApi,
+} from '../api/resumeApi'
 
 export const emptyResume = {
   _id: null,
@@ -58,6 +64,7 @@ export function useResume() {
   const [resume, setResume] = useState(emptyResume)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [error, setError] = useState(null)
   const [lastSavedAt, setLastSavedAt] = useState(null)
 
@@ -135,25 +142,77 @@ export function useResume() {
   const experience = makeListHelpers('experience', emptyExperience)
   const projects = makeListHelpers('projects', emptyProject)
 
+  // Shared by both the Save button and photo upload (which needs a resume _id to
+  // attach the photo to, and auto-saves first if the resume hasn't been saved yet).
+  // Returns the normalized saved resume directly, since React state updates aren't
+  // synchronous and callers may need the fresh _id immediately.
+  const persist = useCallback(async () => {
+    const payload = { title: resume.title, photoUrl: resume.photoUrl, sections: resume.sections }
+    const saved = resume._id ? await updateResume(resume._id, payload) : await createResume(payload)
+    const normalized = normalizeResume(saved)
+    setResume(normalized)
+    setLastSavedAt(new Date())
+    return normalized
+  }, [resume._id, resume.title, resume.photoUrl, resume.sections])
+
   const save = useCallback(async () => {
     setSaving(true)
     setError(null)
     try {
-      const payload = { title: resume.title, photoUrl: resume.photoUrl, sections: resume.sections }
-      const saved = resume._id ? await updateResume(resume._id, payload) : await createResume(payload)
-      setResume(normalizeResume(saved))
-      setLastSavedAt(new Date())
+      await persist()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
     }
-  }, [resume._id, resume.title, resume.photoUrl, resume.sections])
+  }, [persist])
+
+  const uploadPhoto = useCallback(
+    async (file) => {
+      setUploadingPhoto(true)
+      setError(null)
+      try {
+        let id = resume._id
+        if (!id) {
+          const saved = await persist()
+          id = saved._id
+        }
+        const updated = await uploadResumePhotoApi(id, file)
+        setResume(normalizeResume(updated))
+        setLastSavedAt(new Date())
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setUploadingPhoto(false)
+      }
+    },
+    [resume._id, persist],
+  )
+
+  const removePhoto = useCallback(async () => {
+    if (!resume._id) {
+      // Never saved, so there's nothing on the server to remove — just clear locally.
+      setResume((prev) => ({ ...prev, photoUrl: '', photoFileId: '' }))
+      return
+    }
+    setUploadingPhoto(true)
+    setError(null)
+    try {
+      const updated = await removeResumePhotoApi(resume._id)
+      setResume(normalizeResume(updated))
+      setLastSavedAt(new Date())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }, [resume._id])
 
   return {
     resume,
     loading,
     saving,
+    uploadingPhoto,
     error,
     lastSavedAt,
     setTitle,
@@ -164,5 +223,7 @@ export function useResume() {
     experience,
     projects,
     save,
+    uploadPhoto,
+    removePhoto,
   }
 }

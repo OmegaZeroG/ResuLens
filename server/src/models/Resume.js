@@ -55,6 +55,9 @@ const resumeSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     title: { type: String, required: true, trim: true, default: 'Untitled Resume' },
     photoUrl: { type: String, trim: true },
+    // ImageKit's file id — needed to actually delete the file from ImageKit when the
+    // photo is removed or replaced, not just clear the URL on our side.
+    photoFileId: { type: String, trim: true },
     sections: {
       contact: { type: contactSchema, default: () => ({}) },
       summary: { type: String, trim: true, default: '' },

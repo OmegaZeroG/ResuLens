@@ -3,7 +3,14 @@ export function ResumePreview({ resume }) {
 
   return (
     <div className="mx-auto w-full max-w-[8.5in] rounded-lg border border-slate-200 bg-white p-10 text-slate-800 shadow-sm">
-      <header className="border-b border-slate-200 pb-4 text-center">
+      <header className="flex flex-col items-center border-b border-slate-200 pb-4 text-center">
+        {resume.photoUrl && (
+          <img
+            src={resume.photoUrl}
+            alt="Profile"
+            className="mb-3 h-20 w-20 rounded-full object-cover"
+          />
+        )}
         <h1 className="text-2xl font-bold tracking-tight">{contact.fullName || 'Your Name'}</h1>
         <p className="mt-1 flex flex-wrap justify-center gap-x-3 text-xs text-slate-500">
           {[contact.email, contact.phone, contact.location, contact.linkedin, contact.portfolio]
