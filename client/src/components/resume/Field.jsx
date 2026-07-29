@@ -31,7 +31,7 @@ export function SectionCard({ title, children, onAdd, addLabel }) {
           <button
             type="button"
             onClick={onAdd}
-            className="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
           >
             {addLabel || '+ Add'}
           </button>

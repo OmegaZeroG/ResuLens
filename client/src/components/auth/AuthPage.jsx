@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { googleAuthUrl, githubAuthUrl } from '../../api/authApi'
+import { Logo } from '../common/Logo'
 
 function GoogleIcon() {
   return (
@@ -33,9 +34,9 @@ function GithubIcon() {
   )
 }
 
-export function AuthPage() {
+export function AuthPage({ initialMode = 'login', onBack }) {
   const { login, signup, authError, clearAuthError } = useAuth()
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState(initialMode)
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -77,8 +78,17 @@ export function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-800">ResuLens</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-4 text-sm text-slate-400 hover:text-slate-600"
+          >
+            ← Back to home
+          </button>
+        )}
+        <Logo size="sm" />
+        <p className="mt-3 text-sm text-slate-500">
           {mode === 'login' ? 'Log in to your account' : 'Create an account to get started'}
         </p>
 
@@ -161,7 +171,7 @@ export function AuthPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Sign up'}
           </button>

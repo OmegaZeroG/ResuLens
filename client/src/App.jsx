@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { AuthPage } from './components/auth/AuthPage'
+import { LandingPage } from './components/landing/LandingPage'
 import { ResumeBuilder } from './components/resume/ResumeBuilder'
 import { ResumeDashboard } from './components/dashboard/ResumeDashboard'
 
@@ -9,6 +10,16 @@ function AppShell() {
   // undefined = show the dashboard, null = editing a brand new (unsaved) resume,
   // a string = editing that resume's _id.
   const [activeResumeId, setActiveResumeId] = useState(undefined)
+  // null = show the public landing page, 'login' | 'signup' = show AuthPage in that mode.
+  const [authMode, setAuthMode] = useState(null)
+
+  // Logging out should drop you back on the landing page, not straight into
+  // the login form, and reset any in-progress resume selection.
+  function handleLogout() {
+    logout()
+    setAuthMode(null)
+    setActiveResumeId(undefined)
+  }
 
   if (loading) {
     return (
@@ -17,14 +28,19 @@ function AppShell() {
   }
 
   if (!user) {
-    return <AuthPage />
+    if (authMode) {
+      return <AuthPage initialMode={authMode} onBack={() => setAuthMode(null)} />
+    }
+    return (
+      <LandingPage onGetStarted={() => setAuthMode('signup')} onLogin={() => setAuthMode('login')} />
+    )
   }
 
   if (activeResumeId === undefined) {
     return (
       <ResumeDashboard
         user={user}
-        onLogout={logout}
+        onLogout={handleLogout}
         onCreateResume={() => setActiveResumeId(null)}
         onOpenResume={(id) => setActiveResumeId(id)}
       />
@@ -34,7 +50,7 @@ function AppShell() {
   return (
     <ResumeBuilder
       user={user}
-      onLogout={logout}
+      onLogout={handleLogout}
       resumeId={activeResumeId}
       onBack={() => setActiveResumeId(undefined)}
     />

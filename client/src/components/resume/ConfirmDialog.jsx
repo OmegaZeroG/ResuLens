@@ -39,7 +39,7 @@ export function ConfirmDialog({
             className={
               danger
                 ? 'rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600'
-                : 'rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700'
+                : 'rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700'
             }
           >
             {confirmLabel}
