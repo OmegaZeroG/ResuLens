@@ -189,6 +189,16 @@ export function useResume() {
     [resume._id, persist],
   )
 
+  // Clears the form back to a blank draft, including dropping the current _id —
+  // so this never touches what's already saved. If you never click Save after
+  // resetting, refreshing the page brings your saved resume right back. If you
+  // do Save, it creates a new resume rather than overwriting the old one.
+  const resetForm = useCallback(() => {
+    setResume(JSON.parse(JSON.stringify(emptyResume)))
+    setError(null)
+    setLastSavedAt(null)
+  }, [])
+
   const removePhoto = useCallback(async () => {
     if (!resume._id) {
       // Never saved, so there's nothing on the server to remove — just clear locally.
@@ -225,5 +235,6 @@ export function useResume() {
     save,
     uploadPhoto,
     removePhoto,
+    resetForm,
   }
 }

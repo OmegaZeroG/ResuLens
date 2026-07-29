@@ -1,8 +1,13 @@
-export function ResumePreview({ resume }) {
+import { forwardRef } from 'react'
+
+export const ResumePreview = forwardRef(function ResumePreview({ resume }, ref) {
   const { contact, summary, education, experience, skills, projects } = resume.sections
 
   return (
-    <div className="mx-auto w-full max-w-[8.5in] rounded-lg border border-slate-200 bg-white p-10 text-slate-800 shadow-sm">
+    <div
+      ref={ref}
+      className="mx-auto w-full max-w-[8.5in] rounded-lg border border-slate-200 bg-white p-10 text-slate-800 shadow-sm"
+    >
       <header className="flex flex-col items-center border-b border-slate-200 pb-4 text-center">
         {resume.photoUrl && (
           <img
@@ -115,4 +120,4 @@ export function ResumePreview({ resume }) {
       )}
     </div>
   )
-}
+})

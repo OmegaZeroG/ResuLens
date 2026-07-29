@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react'
 import { useResume } from '../../hooks/useResume'
+import { exportElementToPdf } from '../../utils/exportPdf'
 import { ContactSection } from './ContactSection'
 import { SummarySection } from './SummarySection'
 import { EducationSection } from './EducationSection'
@@ -6,6 +8,7 @@ import { ExperienceSection } from './ExperienceSection'
 import { SkillsSection } from './SkillsSection'
 import { ProjectsSection } from './ProjectsSection'
 import { ResumePreview } from './ResumePreview'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export function ResumeBuilder() {
   const {
@@ -25,7 +28,32 @@ export function ResumeBuilder() {
     save,
     uploadPhoto,
     removePhoto,
+    resetForm,
   } = useResume()
+
+  const previewRef = useRef(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportError, setExportError] = useState(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
+  async function handleDownloadPdf() {
+    if (!previewRef.current) return
+    setExportingPdf(true)
+    setExportError(null)
+    try {
+      const filename = `${(resume.title || 'resume').trim().replace(/\s+/g, '-').toLowerCase()}.pdf`
+      await exportElementToPdf(previewRef.current, filename)
+    } catch (err) {
+      setExportError(err.message)
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  function handleConfirmReset() {
+    resetForm()
+    setShowResetConfirm(false)
+  }
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center text-slate-500">Loading…</div>
@@ -40,10 +68,27 @@ export function ResumeBuilder() {
           className="w-64 rounded-md border border-transparent px-2 py-1 text-lg font-semibold text-slate-800 hover:border-slate-200 focus:border-slate-300 focus:outline-none"
         />
         <div className="flex items-center gap-3">
-          {error && <span className="text-sm text-red-500">{error}</span>}
-          {!error && lastSavedAt && (
+          {(error || exportError) && (
+            <span className="text-sm text-red-500">{error || exportError}</span>
+          )}
+          {!error && !exportError && lastSavedAt && (
             <span className="text-sm text-slate-400">Saved {lastSavedAt.toLocaleTimeString()}</span>
           )}
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
+            className="rounded-md border border-transparent px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={exportingPdf}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {exportingPdf ? 'Generating…' : 'Download PDF'}
+          </button>
           <button
             type="button"
             onClick={save}
@@ -88,9 +133,20 @@ export function ResumeBuilder() {
         </div>
 
         <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
-          <ResumePreview resume={resume} />
+          <ResumePreview ref={previewRef} resume={resume} />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Clear the entire form?"
+        message="This only clears what you see here — your last saved resume stays in the database until you click Save again."
+        confirmLabel="Reset"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={handleConfirmReset}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   )
 }
