@@ -51,8 +51,7 @@ const contactSchema = new Schema(
 
 const resumeSchema = new Schema(
   {
-    // Optional until Phase 2 (JWT auth) is built — will become required + indexed then.
-    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true, trim: true, default: 'Untitled Resume' },
     photoUrl: { type: String, trim: true },
     // ImageKit's file id — needed to actually delete the file from ImageKit when the

@@ -1,20 +1,25 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import multer from 'multer'
 import healthRouter from './routes/health.routes.js'
 import resumeRouter from './routes/resume.routes.js'
+import authRouter from './routes/auth.routes.js'
 import ApiError from './utils/ApiError.js'
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+// Only used for the short-lived OAuth CSRF state cookie (see oauth.controller.js) —
+// nothing else in this app relies on cookies, sessions are still stateless JWT.
+app.use(cookieParser())
 
 app.use('/api/health', healthRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/resume', resumeRouter)
 
-// Auth and analyze routers get mounted here in later phases:
-// app.use('/api/auth', authRouter)
+// The analyze router gets mounted here in a later phase:
 // app.use('/api/analyze', analyzeRouter)
 
 app.use((req, res) => {

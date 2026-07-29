@@ -1,13 +1,38 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
+// Every /api/resume route requires a Bearer token now (see server/src/routes/resume.routes.js).
+// The token lives in useAuth's state; it calls setAuthToken() whenever it changes so this
+// module-level variable always reflects the current session without every call site having
+// to pass it through manually.
+let authToken = null
+export function setAuthToken(token) {
+  authToken = token
+}
+
+// If a request comes back 401 (expired/invalid token, or user deleted server-side),
+// useAuth registers a handler here so the app can log the user out automatically
+// instead of leaving them stuck on a screen full of failed requests.
+let unauthorizedHandler = null
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler
+}
+
+function authHeaders(extra = {}) {
+  return authToken ? { ...extra, Authorization: `Bearer ${authToken}` } : extra
+}
+
 // Server responses are wrapped in { success, statusCode, message, data } (see
 // server/src/utils/ApiResponse.js and ApiError.js) — unwrap .data here so the
 // rest of the client just works with plain resume objects.
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}/api/resume${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: authHeaders({ 'Content-Type': 'application/json', ...(options.headers || {}) }),
   })
+
+  if (res.status === 401) {
+    unauthorizedHandler?.()
+  }
 
   if (res.status === 204) return null
 
@@ -49,8 +74,13 @@ export async function uploadResumePhoto(id, file) {
 
   const res = await fetch(`${API_BASE}/api/resume/${id}/photo`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   })
+
+  if (res.status === 401) {
+    unauthorizedHandler?.()
+  }
 
   const body = await res.json().catch(() => null)
 

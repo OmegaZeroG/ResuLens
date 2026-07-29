@@ -9,8 +9,11 @@ import {
   removeResumePhoto,
 } from '../controllers/resume.controller.js'
 import { uploadPhoto } from '../middleware/upload.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
+
+router.use(requireAuth)
 
 router.post('/', createResume)
 router.get('/', listResumes)

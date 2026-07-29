@@ -6,14 +6,19 @@ import asyncHandler from '../utils/asyncHandler.js'
 import isValidObjectId from '../utils/isValidObjectId.js'
 import { getImageKitClient } from '../config/imagekit.js'
 
+// Every handler here runs behind requireAuth (see resume.routes.js), so req.user
+// is always set. All queries are scoped to req.user._id — a resume that exists
+// but belongs to someone else looks identical to one that doesn't exist (404,
+// not 403), so we don't leak which resume IDs are real to non-owners.
+
 export const createResume = asyncHandler(async (req, res) => {
-  const resume = await Resume.create(req.body)
+  const { title, photoUrl, sections } = req.body
+  const resume = await Resume.create({ title, photoUrl, sections, userId: req.user._id })
   new ApiResponse(201, resume, 'Resume created').send(res)
 })
 
 export const listResumes = asyncHandler(async (req, res) => {
-  // Once auth (Phase 2) lands, scope this to req.user.id instead of returning everything.
-  const resumes = await Resume.find().sort({ updatedAt: -1 })
+  const resumes = await Resume.find({ userId: req.user._id }).sort({ updatedAt: -1 })
   new ApiResponse(200, resumes, 'Resumes fetched').send(res)
 })
 
@@ -21,7 +26,7 @@ export const getResume = asyncHandler(async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
     throw ApiError.badRequest('Invalid resume id')
   }
-  const resume = await Resume.findById(req.params.id)
+  const resume = await Resume.findOne({ _id: req.params.id, userId: req.user._id })
   if (!resume) throw ApiError.notFound('Resume not found')
   new ApiResponse(200, resume, 'Resume fetched').send(res)
 })
@@ -30,10 +35,14 @@ export const updateResume = asyncHandler(async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
     throw ApiError.badRequest('Invalid resume id')
   }
-  const resume = await Resume.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  })
+  // Only these fields are ever writable via this endpoint — never trust the body
+  // for userId/photoFileId, both of which are server-controlled.
+  const { title, photoUrl, sections } = req.body
+  const resume = await Resume.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user._id },
+    { title, photoUrl, sections },
+    { new: true, runValidators: true },
+  )
   if (!resume) throw ApiError.notFound('Resume not found')
   new ApiResponse(200, resume, 'Resume updated').send(res)
 })
@@ -42,7 +51,7 @@ export const deleteResume = asyncHandler(async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
     throw ApiError.badRequest('Invalid resume id')
   }
-  const resume = await Resume.findByIdAndDelete(req.params.id)
+  const resume = await Resume.findOneAndDelete({ _id: req.params.id, userId: req.user._id })
   if (!resume) throw ApiError.notFound('Resume not found')
   new ApiResponse(200, null, 'Resume deleted').send(res)
 })
@@ -55,7 +64,7 @@ export const uploadResumePhoto = asyncHandler(async (req, res) => {
     throw ApiError.badRequest('No photo file uploaded (expected form field "photo")')
   }
 
-  const resume = await Resume.findById(req.params.id)
+  const resume = await Resume.findOne({ _id: req.params.id, userId: req.user._id })
   if (!resume) throw ApiError.notFound('Resume not found')
 
   const imagekit = getImageKitClient()
@@ -90,7 +99,7 @@ export const removeResumePhoto = asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Invalid resume id')
   }
 
-  const resume = await Resume.findById(req.params.id)
+  const resume = await Resume.findOne({ _id: req.params.id, userId: req.user._id })
   if (!resume) throw ApiError.notFound('Resume not found')
 
   if (resume.photoFileId) {

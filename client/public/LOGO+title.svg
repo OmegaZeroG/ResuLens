@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 110" width="440" height="110">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="8" flood-color="#6366f1" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Card -->
+  <rect width="440" height="110" rx="16" fill="#ffffff" filter="url(#shadow)"/>
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="440" height="3" rx="2" fill="url(#g1)"/>
+
+  <!-- Document -->
+  <rect x="22" y="16" width="44" height="58" rx="5" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+  <path d="M52 16 L66 30 L52 30 Z" fill="#ddd6fe"/>
+  <line x1="52" y1="16" x2="66" y2="30" stroke="#a78bfa" stroke-width="1.5"/>
+  <line x1="29" y1="38" x2="57" y2="38" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="29" y1="47" x2="57" y2="47" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="29" y1="56" x2="47" y2="56" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-opacity="0.35"/>
+
+  <!-- ATS score bar -->
+  <rect x="29" y="63" width="28" height="4" rx="2" fill="#ede9fe"/>
+  <rect x="29" y="63" width="20" height="4" rx="2" fill="url(#bar)"/>
+
+  <!-- Lens -->
+  <circle cx="64" cy="70" r="20" fill="#ede9fe" stroke="url(#g1)" stroke-width="2.5"/>
+  <circle cx="64" cy="70" r="16" fill="#f5f3ff"/>
+  <circle cx="59" cy="65" r="3.5" fill="white" fill-opacity="0.8"/>
+  <line x1="64" y1="57" x2="64" y2="83" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="2,3"/>
+  <line x1="51" y1="70" x2="77" y2="70" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="2,3"/>
+  <line x1="78" y1="84" x2="91" y2="97" stroke="url(#g1)" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Wordmark -->
+  <text x="110" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="#1e1b4b" letter-spacing="-1.5">Resu</text>
+  <text x="208" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="url(#g1)" letter-spacing="-1.5">lens</text>
+  <text x="110" y="83" font-family="'Segoe UI', system-ui, sans-serif" font-size="10.5" fill="#7c3aed" letter-spacing="3.5" opacity="0.65">RESUME · ATS · INSIGHTS</text>
+</svg>

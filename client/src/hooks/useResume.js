@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  listResumes,
+  getResume,
   createResume,
   updateResume,
   uploadResumePhoto as uploadResumePhotoApi,
@@ -60,23 +60,32 @@ function normalizeResume(raw) {
   }
 }
 
-export function useResume() {
+// resumeId: an existing resume's _id to load and edit, or null/undefined to
+// start a blank draft (the "New Resume" flow from the dashboard).
+export function useResume(resumeId) {
   const [resume, setResume] = useState(emptyResume)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(resumeId))
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [error, setError] = useState(null)
   const [lastSavedAt, setLastSavedAt] = useState(null)
 
-  // On first load, resume editing the most recently updated resume if one exists.
+  // Loads the specific resume the dashboard asked for. No resumeId means a
+  // brand new draft — nothing to fetch, just reset to blank.
   useEffect(() => {
+    if (!resumeId) {
+      setResume(JSON.parse(JSON.stringify(emptyResume)))
+      setLoading(false)
+      setError(null)
+      setLastSavedAt(null)
+      return undefined
+    }
     let cancelled = false
-    listResumes()
-      .then((resumes) => {
-        if (cancelled) return
-        if (resumes && resumes.length > 0) {
-          setResume(normalizeResume(resumes[0]))
-        }
+    setLoading(true)
+    setError(null)
+    getResume(resumeId)
+      .then((data) => {
+        if (!cancelled) setResume(normalizeResume(data))
       })
       .catch((err) => {
         if (!cancelled) setError(err.message)
@@ -87,7 +96,7 @@ export function useResume() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [resumeId])
 
   const setTitle = useCallback((title) => {
     setResume((prev) => ({ ...prev, title }))
