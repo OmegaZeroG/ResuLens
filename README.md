@@ -1,5 +1,7 @@
 # ResuLens
 
+[![CI](https://github.com/OmegaZeroG/ResuLens/actions/workflows/ci.yml/badge.svg)](https://github.com/OmegaZeroG/ResuLens/actions/workflows/ci.yml)
+
 AI Resume Analyzer & JD-Based ATS Optimizer, with a custom rate-limited AI gateway.
 
 Full plan: see `../ResuLens-Project-Plan.docx` and `../TASKS.md` / `../PROGRESS.md` in the parent folder.
