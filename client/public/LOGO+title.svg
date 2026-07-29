@@ -39,7 +39,7 @@
   <line x1="78" y1="84" x2="91" y2="97" stroke="url(#g1)" stroke-width="4" stroke-linecap="round"/>
 
   <!-- Wordmark -->
-  <text x="110" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="#1e1b4b" letter-spacing="-1.5">Resu</text>
-  <text x="208" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="url(#g1)" letter-spacing="-1.5">lens</text>
+  <text x="110" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="#1e1b4b" letter-spacing="-1">Resu</text>
+  <text x="211" y="63" font-family="'Segoe UI', system-ui, sans-serif" font-size="40" font-weight="800" fill="url(#g1)" letter-spacing="-1">Lens</text>
   <text x="110" y="83" font-family="'Segoe UI', system-ui, sans-serif" font-size="10.5" fill="#7c3aed" letter-spacing="3.5" opacity="0.65">RESUME · ATS · INSIGHTS</text>
 </svg>
