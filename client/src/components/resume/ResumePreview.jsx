@@ -1,6 +1,7 @@
 import { forwardRef } from 'react'
-import { MailIcon, PhoneIcon, MapPinIcon, GithubIcon, LinkIcon, detectLinkIcon } from '../common/icons'
+import { MailIcon, PhoneIcon, MapPinIcon, GithubIcon, LinkIcon, InitialsIcon, detectLinkIcon } from '../common/icons'
 import { withProtocol } from '../../utils/links'
+import { getInitials } from '../../utils/name'
 
 // Bold uppercase label with a colored rule underneath — the classic resume
 // "section divider" look. Used for every section so the eye can instantly
@@ -41,12 +42,13 @@ function ContactRow({ icon: Icon, text, href }) {
 // custom) below the name — icon-only, no text, so an arbitrary number of
 // links stay compact in one horizontal row instead of stacking into a wall
 // of URLs.
-function ProfileLinksRow({ links, indent }) {
+function ProfileLinksRow({ links, indent, initials }) {
   const items = (links || []).filter((l) => l.url)
   if (!items.length) return null
   return (
     <div className={`flex items-center gap-3 ${indent ? 'pl-20' : ''}`}>
       {items.map((link, i) => {
+        const isPortfolio = (link.label || '').trim().toLowerCase() === 'portfolio'
         const Icon = detectLinkIcon(link.label, link.url)
         return (
           <a
@@ -57,7 +59,7 @@ function ProfileLinksRow({ links, indent }) {
             title={link.label || link.url}
             className="text-slate-500 hover:text-indigo-600"
           >
-            <Icon className="h-4 w-4" />
+            {isPortfolio ? <InitialsIcon initials={initials} className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
           </a>
         )
       })}
@@ -127,8 +129,12 @@ export const ResumePreview = forwardRef(function ResumePreview({ resume }, ref) 
         {/* Profile links (LinkedIn, GitHub, LeetCode, Codeforces, anything
             custom) sit below the name as icon-only links, indented past the
             photo so they line up under the name text itself. */}
-        <div className="mt-3">
-          <ProfileLinksRow links={contact.links} indent={Boolean(resume.photoUrl)} />
+        <div className="mt-1">
+          <ProfileLinksRow
+            links={contact.links}
+            indent={Boolean(resume.photoUrl)}
+            initials={getInitials(contact.firstName, contact.lastName)}
+          />
         </div>
       </header>
 

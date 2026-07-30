@@ -1,5 +1,6 @@
 import { Field, SectionCard } from './Field'
-import { detectLinkIcon } from '../common/icons'
+import { detectLinkIcon, InitialsIcon } from '../common/icons'
+import { getInitials } from '../../utils/name'
 
 export function ContactSection({
   contact,
@@ -58,9 +59,9 @@ export function ContactSection({
 
       <div className="grid grid-cols-2 gap-3">
         <Field
-          label="Full name"
-          value={contact.fullName}
-          onChange={(e) => onChange('fullName', e.target.value)}
+          label="First name"
+          value={contact.firstName}
+          onChange={(e) => onChange('firstName', e.target.value)}
         />
         <Field
           label="Email"
@@ -68,7 +69,17 @@ export function ContactSection({
           value={contact.email}
           onChange={(e) => onChange('email', e.target.value)}
         />
+        <Field
+          label="Middle name (optional)"
+          value={contact.middleName}
+          onChange={(e) => onChange('middleName', e.target.value)}
+        />
         <Field label="Phone" value={contact.phone} onChange={(e) => onChange('phone', e.target.value)} />
+        <Field
+          label="Last name"
+          value={contact.lastName}
+          onChange={(e) => onChange('lastName', e.target.value)}
+        />
         <Field
           label="Location"
           value={contact.location}
@@ -94,10 +105,18 @@ export function ContactSection({
         )}
         <div className="space-y-2">
           {contact.links.map((link, i) => {
+            const isPortfolio = (link.label || '').trim().toLowerCase() === 'portfolio'
             const Icon = detectLinkIcon(link.label, link.url)
             return (
               <div key={i} className="flex items-center gap-2">
-                <Icon className="h-5 w-5 shrink-0" />
+                {isPortfolio ? (
+                  <InitialsIcon
+                    initials={getInitials(contact.firstName, contact.lastName)}
+                    className="h-5 w-5 shrink-0"
+                  />
+                ) : (
+                  <Icon className="h-5 w-5 shrink-0" />
+                )}
                 <input
                   value={link.label}
                   onChange={(e) => onUpdateLink(i, 'label', e.target.value)}

@@ -13,6 +13,9 @@ export const emptyResume = {
   photoUrl: '',
   sections: {
     contact: {
+      firstName: '',
+      middleName: '',
+      lastName: '',
       fullName: '',
       email: '',
       phone: '',
@@ -57,6 +60,26 @@ function migrateContactLinks(contact) {
   return migrated
 }
 
+// Older resumes only had a single `fullName` field before it was split into
+// First/Middle/Last (needed so initials can reliably use first + last only,
+// never the middle name). Best-effort split by whitespace — first word is
+// the first name, last word is the last name, anything in between is the
+// middle name.
+function splitFullName(fullName) {
+  const parts = (fullName || '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return { firstName: '', middleName: '', lastName: '' }
+  if (parts.length === 1) return { firstName: parts[0], middleName: '', lastName: '' }
+  return { firstName: parts[0], lastName: parts[parts.length - 1], middleName: parts.slice(1, -1).join(' ') }
+}
+
+// The single source of truth for the display name — always recomputed from
+// the three parts so every consumer that just wants "the name as one string"
+// (the preview header, the PDF export, the AI prompts) keeps working
+// unchanged without needing to know about the split.
+function computeFullName(contact) {
+  return [contact.firstName, contact.middleName, contact.lastName].filter(Boolean).join(' ')
+}
+
 // The API may return documents saved before a field existed, or created with a partial
 // payload (e.g. a quick curl test). Never trust the shape blindly — deep-merge onto the
 // known-good empty shape so every section always has every field the form expects.
@@ -71,6 +94,11 @@ function normalizeResume(raw) {
       contact: (() => {
         const contact = { ...emptyResume.sections.contact, ...(rawSections.contact || {}) }
         contact.links = migrateContactLinks(contact).map((l) => ({ ...emptyContactLink, ...l }))
+        // Only split if the parts genuinely aren't there yet — never
+        // overwrite real per-part data once it exists.
+        if (!contact.firstName && !contact.lastName && contact.fullName) {
+          Object.assign(contact, splitFullName(contact.fullName))
+        }
         return contact
       })(),
       education: (rawSections.education || []).map((e) => ({ ...emptyEducation, ...e })),
@@ -133,13 +161,16 @@ export function useResume(resumeId) {
   }, [])
 
   const setContactField = useCallback((field, value) => {
-    setResume((prev) => ({
-      ...prev,
-      sections: {
-        ...prev.sections,
-        contact: { ...prev.sections.contact, [field]: value },
-      },
-    }))
+    setResume((prev) => {
+      const contact = { ...prev.sections.contact, [field]: value }
+      // fullName is never edited directly anymore (the form has separate
+      // First/Middle/Last inputs) — keep it in sync automatically so every
+      // place that just wants a display string still works unchanged.
+      if (field === 'firstName' || field === 'middleName' || field === 'lastName') {
+        contact.fullName = computeFullName(contact)
+      }
+      return { ...prev, sections: { ...prev.sections, contact } }
+    })
   }, [])
 
   // Contact links are a nested array (sections.contact.links), one level

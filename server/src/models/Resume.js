@@ -68,6 +68,14 @@ const contactLinkSchema = new Schema(
 
 const contactSchema = new Schema(
   {
+    // Split into parts so initials (first + last, never the middle name) can
+    // be computed reliably — `fullName` stays in the schema too, kept
+    // auto-derived client-side from the three parts whenever they change, so
+    // every place that just wants a display string (PDF export, the AI
+    // prompts, older code) keeps working unchanged.
+    firstName: { type: String, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     fullName: { type: String, trim: true },
     email: { type: String, trim: true },
     phone: { type: String, trim: true },
