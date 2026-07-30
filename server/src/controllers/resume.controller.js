@@ -5,6 +5,8 @@ import ApiResponse from '../utils/ApiResponse.js'
 import asyncHandler from '../utils/asyncHandler.js'
 import isValidObjectId from '../utils/isValidObjectId.js'
 import { getImageKitClient } from '../config/imagekit.js'
+import { extractTextFromFile } from '../utils/resumeText.js'
+import { importResumeFromText } from '../services/geminiImport.js'
 
 // Every handler here runs behind requireAuth (see resume.routes.js), so req.user
 // is always set. All queries are scoped to req.user._id — a resume that exists
@@ -54,6 +56,23 @@ export const deleteResume = asyncHandler(async (req, res) => {
   const resume = await Resume.findOneAndDelete({ _id: req.params.id, userId: req.user._id })
   if (!resume) throw ApiError.notFound('Resume not found')
   new ApiResponse(200, null, 'Resume deleted').send(res)
+})
+
+// Parses an uploaded resume file (PDF/DOCX/TXT), asks Gemini to faithfully
+// map it into our schema (not rewrite it), and saves the result as a brand
+// new resume — same "never overwrite, always create fresh" pattern as the
+// Improve feature. The client opens this new resume straight in the builder
+// so it's immediately live-editable instead of retyped from scratch.
+export const importResume = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw ApiError.badRequest('No resume file uploaded (expected form field "resumeFile")')
+  }
+
+  const resumeText = await extractTextFromFile(req.file)
+  const { title, sections } = await importResumeFromText(resumeText)
+  const resume = await Resume.create({ title, sections, userId: req.user._id })
+
+  new ApiResponse(201, resume, 'Resume imported').send(res)
 })
 
 export const uploadResumePhoto = asyncHandler(async (req, res) => {

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { listResumes, deleteResume as deleteResumeApi } from '../../api/resumeApi'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { listResumes, deleteResume as deleteResumeApi, importResume } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 
 export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, onOpenAnalyze }) {
@@ -8,6 +8,8 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, 
   const [error, setError] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -21,6 +23,24 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, 
   useEffect(() => {
     load()
   }, [load])
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+    setImporting(true)
+    setError('')
+    try {
+      const imported = await importResume(file)
+      // Opens straight in the builder, already prefilled — the whole point
+      // is skipping retyping, not landing back on the dashboard to click Edit.
+      onOpenResume(imported._id)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
+  }
 
   async function handleConfirmDelete() {
     if (!pendingDeleteId) return
@@ -41,6 +61,21 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, 
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <h1 className="text-lg font-semibold text-slate-800">My Resumes</h1>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {importing ? 'Importing…' : 'Import from old resume'}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            className="hidden"
+            onChange={handleImportFile}
+          />
           <button
             type="button"
             onClick={onOpenAnalyze}

@@ -33,6 +33,13 @@ const projectSchema = new Schema(
     description: { type: String, trim: true },
     liveLink: { type: String, trim: true },
     githubLink: { type: String, trim: true },
+    // Deprecated — superseded by liveLink/githubLink above. Kept declared
+    // (never actually removed from the schema) purely so a resume saved
+    // before that split still returns its old value from the API; Mongoose
+    // silently drops any field not declared in the schema when a document is
+    // read back out, so removing this outright would have made old projects'
+    // links permanently unreadable rather than just unused.
+    link: { type: String, trim: true },
     bullets: { type: [String], default: [] },
   },
   { _id: false },
@@ -49,14 +56,29 @@ const customSectionSchema = new Schema(
   { _id: false },
 )
 
+// A free-form profile link — LinkedIn, GitHub, LeetCode, Codeforces, a
+// personal site, anything. `label` drives which icon renders next to it.
+const contactLinkSchema = new Schema(
+  {
+    label: { type: String, trim: true },
+    url: { type: String, trim: true },
+  },
+  { _id: false },
+)
+
 const contactSchema = new Schema(
   {
     fullName: { type: String, trim: true },
     email: { type: String, trim: true },
     phone: { type: String, trim: true },
     location: { type: String, trim: true },
+    // Deprecated — superseded by `links` below. Kept declared (never
+    // removed) for the same reason as projectSchema.link above: so a resume
+    // saved before this change still returns its old value to migrate from,
+    // instead of Mongoose silently dropping it on read.
     linkedin: { type: String, trim: true },
     portfolio: { type: String, trim: true },
+    links: { type: [contactLinkSchema], default: [] },
   },
   { _id: false },
 )

@@ -21,6 +21,9 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
     lastSavedAt,
     setTitle,
     setContactField,
+    addContactLink,
+    updateContactLink,
+    removeContactLink,
     setSummary,
     setSkills,
     education,
@@ -131,6 +134,9 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             onUploadPhoto={uploadPhoto}
             onRemovePhoto={removePhoto}
             uploadingPhoto={uploadingPhoto}
+            onAddLink={addContactLink}
+            onUpdateLink={updateContactLink}
+            onRemoveLink={removeContactLink}
           />
           <SummarySection summary={resume.sections.summary} onChange={setSummary} />
           <EducationSection

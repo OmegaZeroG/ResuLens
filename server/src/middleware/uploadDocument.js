@@ -25,3 +25,11 @@ export const uploadAnalyzeFiles = multer({
   { name: 'resumeFile', maxCount: 1 },
   { name: 'jdFile', maxCount: 1 },
 ])
+
+// A single resume file for the "import from old resume" flow — populates
+// `req.file` rather than `req.files` since there's only ever one field here.
+export const uploadImportFile = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter,
+}).single('resumeFile')

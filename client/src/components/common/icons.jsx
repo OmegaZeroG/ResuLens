@@ -71,13 +71,28 @@ export function LeetcodeIcon({ className = 'h-3.5 w-3.5' }) {
   )
 }
 
-// Picks the right brand icon for a profile URL whose platform isn't fixed by
-// its own dedicated field (e.g. the generic "portfolio" link could point to
-// GitHub, LeetCode, a personal site, anything).
-export function detectLinkIcon(url) {
-  const u = (url || '').toLowerCase()
-  if (u.includes('github.com')) return GithubIcon
-  if (u.includes('leetcode.com')) return LeetcodeIcon
-  if (u.includes('linkedin.com')) return LinkedinIcon
+// Codeforces' real mark is a gradient swirl "C" that's just as awkward to
+// hand-trace as LeetCode's — same monogram-badge treatment for the same
+// reason, using their site's blue.
+export function CodeforcesIcon({ className = 'h-3.5 w-3.5' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="1" y="1" width="22" height="22" rx="5" fill="#1F8ACB" />
+      <text x="12" y="16.5" textAnchor="middle" fontSize="9.5" fontWeight="700" fontFamily="Arial, sans-serif" fill="#FFFFFF">
+        CF
+      </text>
+    </svg>
+  )
+}
+
+// Picks the right brand icon for a free-form contact link — checks both the
+// user-typed label ("Codeforces", "LeetCode", ...) and the URL itself, since
+// either one might be the only clue to what platform it is.
+export function detectLinkIcon(label, url) {
+  const text = `${label || ''} ${url || ''}`.toLowerCase()
+  if (text.includes('linkedin')) return LinkedinIcon
+  if (text.includes('github')) return GithubIcon
+  if (text.includes('leetcode')) return LeetcodeIcon
+  if (text.includes('codeforces')) return CodeforcesIcon
   return LinkIcon
 }

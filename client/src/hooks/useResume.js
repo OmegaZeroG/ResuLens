@@ -19,6 +19,7 @@ export const emptyResume = {
       location: '',
       linkedin: '',
       portfolio: '',
+      links: [],
     },
     summary: '',
     education: [],
@@ -41,6 +42,20 @@ const emptyExperience = {
 }
 const emptyProject = { name: '', description: '', liveLink: '', githubLink: '', bullets: [] }
 const emptyCustomSection = { title: '', bullets: [] }
+const emptyContactLink = { label: '', url: '' }
+
+// Older resumes had fixed `linkedin`/`portfolio` fields instead of the
+// flexible `links` list — fold them in as real link entries instead of
+// losing them. Only runs when `links` is still empty (a resume that predates
+// this feature); once it has real entries, this never re-runs, so it can't
+// duplicate them on every load.
+function migrateContactLinks(contact) {
+  if (contact.links?.length) return contact.links
+  const migrated = []
+  if (contact.linkedin) migrated.push({ label: 'LinkedIn', url: contact.linkedin })
+  if (contact.portfolio) migrated.push({ label: 'GitHub', url: contact.portfolio })
+  return migrated
+}
 
 // The API may return documents saved before a field existed, or created with a partial
 // payload (e.g. a quick curl test). Never trust the shape blindly — deep-merge onto the
@@ -53,7 +68,11 @@ function normalizeResume(raw) {
     sections: {
       ...emptyResume.sections,
       ...rawSections,
-      contact: { ...emptyResume.sections.contact, ...(rawSections.contact || {}) },
+      contact: (() => {
+        const contact = { ...emptyResume.sections.contact, ...(rawSections.contact || {}) }
+        contact.links = migrateContactLinks(contact).map((l) => ({ ...emptyContactLink, ...l }))
+        return contact
+      })(),
       education: (rawSections.education || []).map((e) => ({ ...emptyEducation, ...e })),
       experience: (rawSections.experience || []).map((e) => ({ ...emptyExperience, ...e })),
       projects: (rawSections.projects || []).map((p) => {
@@ -121,6 +140,34 @@ export function useResume(resumeId) {
         contact: { ...prev.sections.contact, [field]: value },
       },
     }))
+  }, [])
+
+  // Contact links are a nested array (sections.contact.links), one level
+  // deeper than the top-level arrays makeListHelpers below handles, so they
+  // get their own small set of helpers instead.
+  const addContactLink = useCallback(() => {
+    setResume((prev) => ({
+      ...prev,
+      sections: {
+        ...prev.sections,
+        contact: { ...prev.sections.contact, links: [...prev.sections.contact.links, { ...emptyContactLink }] },
+      },
+    }))
+  }, [])
+
+  const updateContactLink = useCallback((index, field, value) => {
+    setResume((prev) => {
+      const links = [...prev.sections.contact.links]
+      links[index] = { ...links[index], [field]: value }
+      return { ...prev, sections: { ...prev.sections, contact: { ...prev.sections.contact, links } } }
+    })
+  }, [])
+
+  const removeContactLink = useCallback((index) => {
+    setResume((prev) => {
+      const links = prev.sections.contact.links.filter((_, i) => i !== index)
+      return { ...prev, sections: { ...prev.sections, contact: { ...prev.sections.contact, links } } }
+    })
   }, [])
 
   const setSummary = useCallback((summary) => {
@@ -248,6 +295,9 @@ export function useResume(resumeId) {
     lastSavedAt,
     setTitle,
     setContactField,
+    addContactLink,
+    updateContactLink,
+    removeContactLink,
     setSummary,
     setSkills,
     education,

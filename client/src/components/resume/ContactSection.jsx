@@ -1,4 +1,5 @@
 import { Field, SectionCard } from './Field'
+import { detectLinkIcon } from '../common/icons'
 
 export function ContactSection({
   contact,
@@ -7,6 +8,9 @@ export function ContactSection({
   onUploadPhoto,
   onRemovePhoto,
   uploadingPhoto,
+  onAddLink,
+  onUpdateLink,
+  onRemoveLink,
 }) {
   function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -70,16 +74,53 @@ export function ContactSection({
           value={contact.location}
           onChange={(e) => onChange('location', e.target.value)}
         />
-        <Field
-          label="LinkedIn"
-          value={contact.linkedin}
-          onChange={(e) => onChange('linkedin', e.target.value)}
-        />
-        <Field
-          label="Portfolio / GitHub"
-          value={contact.portfolio}
-          onChange={(e) => onChange('portfolio', e.target.value)}
-        />
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-600">
+            Profile links (LinkedIn, GitHub, LeetCode, Codeforces, anything)
+          </span>
+          <button
+            type="button"
+            onClick={onAddLink}
+            className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+          >
+            + Add link
+          </button>
+        </div>
+        {contact.links.length === 0 && (
+          <p className="text-sm text-slate-400">No links added yet.</p>
+        )}
+        <div className="space-y-2">
+          {contact.links.map((link, i) => {
+            const Icon = detectLinkIcon(link.label, link.url)
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <Icon className="h-5 w-5 shrink-0" />
+                <input
+                  value={link.label}
+                  onChange={(e) => onUpdateLink(i, 'label', e.target.value)}
+                  placeholder="Link name (e.g. LinkedIn)"
+                  className="w-40 shrink-0 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none"
+                />
+                <input
+                  value={link.url}
+                  onChange={(e) => onUpdateLink(i, 'url', e.target.value)}
+                  placeholder="Link value (e.g. linkedin.com/in/you)"
+                  className="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemoveLink(i)}
+                  className="shrink-0 text-xs font-medium text-red-500 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </SectionCard>
   )

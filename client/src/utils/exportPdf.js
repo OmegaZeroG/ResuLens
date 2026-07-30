@@ -187,19 +187,39 @@ export async function exportResumeToPdf(resume, filename) {
       // load — the photo just doesn't appear rather than failing the export.
     }
   }
+  const nameY = MARGIN_Y + photoDiameter / 2 + 5
   setStyle(doc, { style: 'bold', size: 19, color: COLOR.slate900 })
   doc.setCharSpace(0.4)
-  doc.text((contact.fullName || 'Your Name').toUpperCase(), nameX, MARGIN_Y + photoDiameter / 2 + 5)
+  doc.text((contact.fullName || 'Your Name').toUpperCase(), nameX, nameY)
   doc.setCharSpace(0)
+
+  // Profile links (LinkedIn, GitHub, LeetCode, Codeforces, anything custom)
+  // sit just below the name, left-aligned under it — same "below the name"
+  // placement as the live preview. No little icon glyphs here (see the
+  // module-level note on why), just the link's label as clickable text.
+  const profileLinks = (contact.links || []).filter((l) => l.url)
+  const linksY = nameY + 16
+  if (profileLinks.length) {
+    let x = nameX
+    setStyle(doc, { style: 'normal', size: 8.5, color: COLOR.indigo600 })
+    profileLinks.forEach((link, i) => {
+      if (i > 0) {
+        doc.setTextColor(...COLOR.slate400)
+        doc.text(' | ', x, linksY)
+        x += doc.getTextWidth(' | ')
+        doc.setTextColor(...COLOR.indigo600)
+      }
+      const w = doc.textWithLink(link.label || link.url, x, linksY, { url: withProtocol(link.url) })
+      x += w
+    })
+  }
 
   ctx.y = MARGIN_Y
   contactLine(ctx, contact.phone, contact.phone && `tel:${contact.phone.replace(/[^\d+]/g, '')}`)
   contactLine(ctx, contact.email, contact.email && `mailto:${contact.email}`)
   contactLine(ctx, contact.location)
-  contactLine(ctx, contact.linkedin, contact.linkedin && withProtocol(contact.linkedin))
-  contactLine(ctx, contact.portfolio, contact.portfolio && withProtocol(contact.portfolio))
 
-  ctx.y = Math.max(ctx.y, MARGIN_Y + photoDiameter) + 8
+  ctx.y = Math.max(ctx.y, MARGIN_Y + photoDiameter, profileLinks.length ? linksY + 6 : 0) + 8
   doc.setDrawColor(...COLOR.slate900)
   doc.setLineWidth(1.4)
   doc.line(MARGIN_X, ctx.y, ctx.pageWidth - MARGIN_X, ctx.y)

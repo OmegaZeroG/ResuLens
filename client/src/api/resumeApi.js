@@ -90,3 +90,29 @@ export async function uploadResumePhoto(id, file) {
 export function removeResumePhoto(id) {
   return request(`/${id}/photo`, { method: 'DELETE' })
 }
+
+// Multipart upload, same reasoning as uploadResumePhoto — let the browser set
+// the multipart Content-Type/boundary itself. Returns the newly created,
+// AI-prefilled resume so the caller can jump straight into editing it.
+export async function importResume(file) {
+  const formData = new FormData()
+  formData.append('resumeFile', file)
+
+  const res = await fetch(`${API_BASE}/api/resume/import`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  })
+
+  if (res.status === 401) {
+    notifyUnauthorized()
+  }
+
+  const body = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    throw new Error(body?.message || `Import failed with status ${res.status}`)
+  }
+
+  return body?.data ?? null
+}

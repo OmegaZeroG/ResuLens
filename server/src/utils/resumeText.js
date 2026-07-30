@@ -47,13 +47,10 @@ export function serializeResumeToText(resume) {
   const lines = []
 
   if (sections.contact?.fullName) lines.push(sections.contact.fullName)
-  const contactLine = [
-    sections.contact?.email,
-    sections.contact?.phone,
-    sections.contact?.location,
-    sections.contact?.linkedin,
-    sections.contact?.portfolio,
-  ]
+  const linkLabels = (sections.contact?.links || [])
+    .filter((l) => l.url)
+    .map((l) => (l.label ? `${l.label}: ${l.url}` : l.url))
+  const contactLine = [sections.contact?.email, sections.contact?.phone, sections.contact?.location, ...linkLabels]
     .filter(Boolean)
     .join(' | ')
   if (contactLine) lines.push(contactLine)
@@ -108,18 +105,27 @@ const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/
 const PHONE_RE = /(\+?\d[\d\s().-]{7,}\d)/
 const LINKEDIN_RE = /(https?:\/\/)?(www\.)?linkedin\.com\/[^\s,)]+/i
 const GITHUB_RE = /(https?:\/\/)?(www\.)?github\.com\/[^\s,)]+/i
+const LEETCODE_RE = /(https?:\/\/)?(www\.)?leetcode\.com\/[^\s,)]+/i
+const CODEFORCES_RE = /(https?:\/\/)?(www\.)?codeforces\.com\/[^\s,)]+/i
 
 // Deterministic, non-AI fallback for pulling contact details straight out of
 // raw resume text with regex. Used as a safety net when an AI rewrite/import
-// leaves a contact field blank — email/phone/LinkedIn/GitHub are reliably
+// leaves a contact field blank — email/phone/profile-links are reliably
 // pattern-matchable, so there's no reason to depend on the model catching
-// them every time.
+// them every time. `links` covers the platforms common enough to be worth a
+// dedicated pattern; anything else the AI has to catch on its own.
 export function extractContactHints(text) {
-  if (!text) return {}
+  if (!text) return { links: [] }
+  const links = [
+    { label: 'LinkedIn', url: text.match(LINKEDIN_RE)?.[0] },
+    { label: 'GitHub', url: text.match(GITHUB_RE)?.[0] },
+    { label: 'LeetCode', url: text.match(LEETCODE_RE)?.[0] },
+    { label: 'Codeforces', url: text.match(CODEFORCES_RE)?.[0] },
+  ].filter((l) => l.url)
+
   return {
     email: text.match(EMAIL_RE)?.[0],
     phone: text.match(PHONE_RE)?.[0]?.trim(),
-    linkedin: text.match(LINKEDIN_RE)?.[0],
-    portfolio: text.match(GITHUB_RE)?.[0],
+    links,
   }
 }
