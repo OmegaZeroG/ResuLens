@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { listResumes, deleteResume as deleteResumeApi, importResume } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 
-export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, onOpenAnalyze }) {
+export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, onOpenAnalyze, onOpenHistory }) {
   const [resumes, setResumes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -76,6 +76,13 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, 
             className="hidden"
             onChange={handleImportFile}
           />
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Analysis history
+          </button>
           <button
             type="button"
             onClick={onOpenAnalyze}

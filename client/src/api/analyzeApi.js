@@ -18,6 +18,29 @@ async function handleResponse(res) {
   return body?.data ?? null
 }
 
+// The AI calls (analyze/improve) can occasionally run long. Without a client-
+// side cap, a genuinely stuck connection just leaves the "Analyzing…"/
+// "Rewriting…" button spinning forever with no feedback — this turns that
+// into a clear, actionable error instead of an indefinite hang. 100s comfortably
+// covers a normal slow response; if it's still not back by then, something's
+// actually wrong rather than just taking a while.
+const AI_TIMEOUT_MS = 100_000
+
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('This is taking longer than expected — please try again in a moment')
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // Resume side: pass either `resumeId` (one of your saved resumes) or `resumeFile`
 // (a File object) — not both. JD side: pass either `jdText` or `jdFile`.
 export async function analyze({ resumeId, resumeFile, jdText, jdFile }) {
@@ -27,7 +50,7 @@ export async function analyze({ resumeId, resumeFile, jdText, jdFile }) {
   if (jdText) formData.append('jdText', jdText)
   if (jdFile) formData.append('jdFile', jdFile)
 
-  const res = await fetch(`${API_BASE}/api/analyze`, {
+  const res = await fetchWithTimeout(`${API_BASE}/api/analyze`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -48,7 +71,7 @@ export async function improveResume({ resumeId, resumeFile, jdText, jdFile, miss
   if (jdFile) formData.append('jdFile', jdFile)
   if (missingKeywords?.length) formData.append('missingKeywords', JSON.stringify(missingKeywords))
 
-  const res = await fetch(`${API_BASE}/api/analyze/improve`, {
+  const res = await fetchWithTimeout(`${API_BASE}/api/analyze/improve`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,

@@ -17,6 +17,27 @@ function authHeaders(extra = {}) {
   return token ? { ...extra, Authorization: `Bearer ${token}` } : extra
 }
 
+// Import goes through the same AI extraction path (geminiImport.js) that was
+// found to occasionally run long (see analyzeApi.js's AI_TIMEOUT_MS for the
+// full story) — same cap, so a stuck import fails clearly instead of leaving
+// "Importing…" spinning forever.
+const AI_TIMEOUT_MS = 100_000
+
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('This is taking longer than expected — please try again in a moment')
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // Server responses are wrapped in { success, statusCode, message, data } (see
 // server/src/utils/ApiResponse.js and ApiError.js) — unwrap .data here so the
 // rest of the client just works with plain resume objects.
@@ -98,7 +119,7 @@ export async function importResume(file) {
   const formData = new FormData()
   formData.append('resumeFile', file)
 
-  const res = await fetch(`${API_BASE}/api/resume/import`, {
+  const res = await fetchWithTimeout(`${API_BASE}/api/resume/import`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,

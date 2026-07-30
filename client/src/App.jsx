@@ -5,10 +5,11 @@ import { LandingPage } from './components/landing/LandingPage'
 import { ResumeBuilder } from './components/resume/ResumeBuilder'
 import { ResumeDashboard } from './components/dashboard/ResumeDashboard'
 import { AnalyzePage } from './components/analyze/AnalyzePage'
+import { AnalysisHistoryPage } from './components/analyze/AnalysisHistoryPage'
 
 function AppShell() {
   const { user, loading, logout } = useAuth()
-  // 'dashboard' | 'builder' | 'analyze' — which logged-in screen is showing.
+  // 'dashboard' | 'builder' | 'analyze' | 'history' — which logged-in screen is showing.
   const [view, setView] = useState('dashboard')
   // Only meaningful when view === 'builder': null = a brand new (unsaved)
   // resume, a string = editing that resume's _id.
@@ -52,6 +53,18 @@ function AppShell() {
     )
   }
 
+  if (view === 'history') {
+    return (
+      <AnalysisHistoryPage
+        onBack={() => setView('dashboard')}
+        onOpenResume={(id) => {
+          setActiveResumeId(id)
+          setView('builder')
+        }}
+      />
+    )
+  }
+
   if (view === 'builder') {
     return (
       <ResumeBuilder
@@ -76,6 +89,7 @@ function AppShell() {
         setView('builder')
       }}
       onOpenAnalyze={() => setView('analyze')}
+      onOpenHistory={() => setView('history')}
     />
   )
 }
