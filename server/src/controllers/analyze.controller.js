@@ -8,6 +8,8 @@ import isValidObjectId from '../utils/isValidObjectId.js'
 import { extractTextFromFile, serializeResumeToText } from '../utils/resumeText.js'
 import { analyzeResumeAgainstJD } from '../services/geminiAnalysis.js'
 import { improveResumeForJD } from '../services/geminiImprove.js'
+import { runAtsRuleChecks } from '../services/atsRules.js'
+import { scoreResumeContent } from '../services/geminiAtsContent.js'
 import { TIERS } from '../middleware/rateLimiter.js'
 
 // Shared by analyze/improve — resolves resumeText from either an uploaded
@@ -163,6 +165,48 @@ export const improve = asyncHandler(async (req, res) => {
   })
 
   new ApiResponse(201, { resume: newResume, analysis: newAnalysis }, 'Improved resume created').send(res)
+})
+
+// Independent ATS score — NOT tied to any job description (contrast with
+// analyze() above, which scores match against a specific JD). Hybrid design:
+// deterministic rule checks (atsRules.js — free, reliable, catches things a
+// real ATS parser actually chokes on) combined with an AI-judged
+// content-quality score (geminiAtsContent.js — the one thing rules can't
+// reliably judge). Works on either a saved resume or an uploaded file, same
+// resolveResumeText() helper as analyze/improve. Not persisted (no history) —
+// this is a quick check-in-the-moment tool, unlike the JD-matched Analyze
+// flow which is deliberately saved for later reference.
+export const scoreAts = asyncHandler(async (req, res) => {
+  const { resumeId } = req.body
+  const resumeFile = req.files?.resumeFile?.[0]
+
+  if (!resumeFile && !resumeId) {
+    throw ApiError.badRequest('Provide either a resume file or one of your saved resumes')
+  }
+
+  const { resumeText, resumeSource, originalSections } = await resolveResumeText(req, resumeFile, resumeId)
+
+  const { score: structureScore, checks: structureChecks } = runAtsRuleChecks({
+    resumeText,
+    sections: originalSections,
+    resumeSource,
+  })
+  const { contentScore, strengths, weaknesses, suggestions } = await scoreResumeContent(resumeText)
+
+  const overallScore = Math.round((structureScore + contentScore) / 2)
+
+  new ApiResponse(
+    200,
+    {
+      overallScore,
+      structureScore,
+      contentScore,
+      structureChecks,
+      content: { strengths, weaknesses, suggestions },
+      resumeSource,
+    },
+    'ATS score computed',
+  ).send(res)
 })
 
 export const listAnalyses = asyncHandler(async (req, res) => {

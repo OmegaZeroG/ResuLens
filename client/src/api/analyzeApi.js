@@ -83,6 +83,22 @@ export async function improveResume({ resumeId, resumeFile, jdText, jdFile, miss
   return handleResponse(res)
 }
 
+// Independent ATS score — no job description needed. Same resume-source
+// shape as analyze()/improveResume() (pass resumeId OR resumeFile), minus
+// the JD side entirely.
+export async function scoreAts({ resumeId, resumeFile }) {
+  const formData = new FormData()
+  if (resumeId) formData.append('resumeId', resumeId)
+  if (resumeFile) formData.append('resumeFile', resumeFile)
+
+  const res = await fetchWithTimeout(`${API_BASE}/api/analyze/ats-score`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  })
+  return handleResponse(res)
+}
+
 export async function listAnalyses() {
   const res = await fetch(`${API_BASE}/api/analyze`, { headers: authHeaders() })
   return handleResponse(res)

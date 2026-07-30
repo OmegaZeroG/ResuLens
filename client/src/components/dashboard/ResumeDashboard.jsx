@@ -2,7 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { listResumes, deleteResume as deleteResumeApi, importResume } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 
-export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, onOpenAnalyze, onOpenHistory, onOpenUsage }) {
+export function ResumeDashboard({
+  user,
+  onLogout,
+  onOpenResume,
+  onCreateResume,
+  onOpenAnalyze,
+  onOpenHistory,
+  onOpenUsage,
+  onOpenAtsScore,
+}) {
   const [resumes, setResumes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -89,6 +98,13 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, 
             className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Usage
+          </button>
+          <button
+            type="button"
+            onClick={onOpenAtsScore}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            ATS score
           </button>
           <button
             type="button"
