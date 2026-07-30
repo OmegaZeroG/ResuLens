@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { listResumes, deleteResume as deleteResumeApi } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 
-export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume }) {
+export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume, onOpenAnalyze }) {
   const [resumes, setResumes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -41,6 +41,13 @@ export function ResumeDashboard({ user, onLogout, onOpenResume, onCreateResume }
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <h1 className="text-lg font-semibold text-slate-800">My Resumes</h1>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenAnalyze}
+            className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            Analyze against a job
+          </button>
           {user?.avatarUrl && (
             <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
           )}

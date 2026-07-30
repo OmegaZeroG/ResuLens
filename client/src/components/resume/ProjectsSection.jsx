@@ -15,16 +15,27 @@ export function ProjectsSection({ projects, onAdd, onUpdate, onRemove }) {
               Remove
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Name" value={proj.name} onChange={(e) => onUpdate(i, 'name', e.target.value)} />
-            <Field label="Link" value={proj.link} onChange={(e) => onUpdate(i, 'link', e.target.value)} />
-          </div>
+          <Field label="Name" value={proj.name} onChange={(e) => onUpdate(i, 'name', e.target.value)} />
           <div className="mt-3">
             <TextAreaField
               label="Description"
               rows={2}
               value={proj.description}
               onChange={(e) => onUpdate(i, 'description', e.target.value)}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Field
+              label="Live (optional)"
+              placeholder="Live"
+              value={proj.liveLink}
+              onChange={(e) => onUpdate(i, 'liveLink', e.target.value)}
+            />
+            <Field
+              label="GitHub Repo"
+              placeholder="GitHub Repo"
+              value={proj.githubLink}
+              onChange={(e) => onUpdate(i, 'githubLink', e.target.value)}
             />
           </div>
           <div className="mt-3">

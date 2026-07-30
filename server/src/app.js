@@ -5,6 +5,7 @@ import multer from 'multer'
 import healthRouter from './routes/health.routes.js'
 import resumeRouter from './routes/resume.routes.js'
 import authRouter from './routes/auth.routes.js'
+import analyzeRouter from './routes/analyze.routes.js'
 import ApiError from './utils/ApiError.js'
 
 const app = express()
@@ -18,9 +19,7 @@ app.use(cookieParser())
 app.use('/api/health', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/resume', resumeRouter)
-
-// The analyze router gets mounted here in a later phase:
-// app.use('/api/analyze', analyzeRouter)
+app.use('/api/analyze', analyzeRouter)
 
 app.use((req, res) => {
   res.status(404).json({ success: false, statusCode: 404, message: 'Not found' })

@@ -25,6 +25,7 @@ export const emptyResume = {
     experience: [],
     skills: [],
     projects: [],
+    customSections: [],
   },
 }
 
@@ -38,7 +39,8 @@ const emptyExperience = {
   current: false,
   bullets: [],
 }
-const emptyProject = { name: '', description: '', link: '', bullets: [] }
+const emptyProject = { name: '', description: '', liveLink: '', githubLink: '', bullets: [] }
+const emptyCustomSection = { title: '', bullets: [] }
 
 // The API may return documents saved before a field existed, or created with a partial
 // payload (e.g. a quick curl test). Never trust the shape blindly — deep-merge onto the
@@ -54,8 +56,17 @@ function normalizeResume(raw) {
       contact: { ...emptyResume.sections.contact, ...(rawSections.contact || {}) },
       education: (rawSections.education || []).map((e) => ({ ...emptyEducation, ...e })),
       experience: (rawSections.experience || []).map((e) => ({ ...emptyExperience, ...e })),
-      projects: (rawSections.projects || []).map((p) => ({ ...emptyProject, ...p })),
+      projects: (rawSections.projects || []).map((p) => {
+        const merged = { ...emptyProject, ...p }
+        // Older resumes only had a single `link` field before Live/GitHub
+        // were split apart — in practice that field was always used for the
+        // GitHub repo URL, so carry it over instead of silently losing it.
+        if (p?.link && !merged.githubLink) merged.githubLink = p.link
+        delete merged.link
+        return merged
+      }),
       skills: rawSections.skills || [],
+      customSections: (rawSections.customSections || []).map((s) => ({ ...emptyCustomSection, ...s })),
     },
   }
 }
@@ -150,6 +161,7 @@ export function useResume(resumeId) {
   const education = makeListHelpers('education', emptyEducation)
   const experience = makeListHelpers('experience', emptyExperience)
   const projects = makeListHelpers('projects', emptyProject)
+  const customSections = makeListHelpers('customSections', emptyCustomSection)
 
   // Shared by both the Save button and photo upload (which needs a resume _id to
   // attach the photo to, and auto-saves first if the resume hasn't been saved yet).
@@ -241,6 +253,7 @@ export function useResume(resumeId) {
     education,
     experience,
     projects,
+    customSections,
     save,
     uploadPhoto,
     removePhoto,

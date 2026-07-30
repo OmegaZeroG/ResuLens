@@ -1,12 +1,13 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useResume } from '../../hooks/useResume'
-import { exportElementToPdf } from '../../utils/exportPdf'
+import { exportResumeToPdf } from '../../utils/exportPdf'
 import { ContactSection } from './ContactSection'
 import { SummarySection } from './SummarySection'
 import { EducationSection } from './EducationSection'
 import { ExperienceSection } from './ExperienceSection'
 import { SkillsSection } from './SkillsSection'
 import { ProjectsSection } from './ProjectsSection'
+import { CustomSectionsSection } from './CustomSectionsSection'
 import { ResumePreview } from './ResumePreview'
 import { ConfirmDialog } from './ConfirmDialog'
 
@@ -25,24 +26,23 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
     education,
     experience,
     projects,
+    customSections,
     save,
     uploadPhoto,
     removePhoto,
     resetForm,
   } = useResume(resumeId)
 
-  const previewRef = useRef(null)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   async function handleDownloadPdf() {
-    if (!previewRef.current) return
     setExportingPdf(true)
     setExportError(null)
     try {
       const filename = `${(resume.title || 'resume').trim().replace(/\s+/g, '-').toLowerCase()}.pdf`
-      await exportElementToPdf(previewRef.current, filename)
+      await exportResumeToPdf(resume, filename)
     } catch (err) {
       setExportError(err.message)
     } finally {
@@ -152,10 +152,16 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             onUpdate={projects.update}
             onRemove={projects.remove}
           />
+          <CustomSectionsSection
+            customSections={resume.sections.customSections}
+            onAdd={customSections.add}
+            onUpdate={customSections.update}
+            onRemove={customSections.remove}
+          />
         </div>
 
         <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
-          <ResumePreview ref={previewRef} resume={resume} />
+          <ResumePreview resume={resume} />
         </div>
       </div>
 

@@ -1,24 +1,20 @@
+import {
+  setAuthToken,
+  getAuthToken,
+  setUnauthorizedHandler,
+  notifyUnauthorized,
+} from './authToken.js'
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-// Every /api/resume route requires a Bearer token now (see server/src/routes/resume.routes.js).
-// The token lives in useAuth's state; it calls setAuthToken() whenever it changes so this
-// module-level variable always reflects the current session without every call site having
-// to pass it through manually.
-let authToken = null
-export function setAuthToken(token) {
-  authToken = token
-}
-
-// If a request comes back 401 (expired/invalid token, or user deleted server-side),
-// useAuth registers a handler here so the app can log the user out automatically
-// instead of leaving them stuck on a screen full of failed requests.
-let unauthorizedHandler = null
-export function setUnauthorizedHandler(handler) {
-  unauthorizedHandler = handler
-}
+// Re-exported so useAuth.jsx's existing imports keep working — the actual
+// token now lives in authToken.js, shared with analyzeApi.js and any future
+// API module.
+export { setAuthToken, setUnauthorizedHandler }
 
 function authHeaders(extra = {}) {
-  return authToken ? { ...extra, Authorization: `Bearer ${authToken}` } : extra
+  const token = getAuthToken()
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra
 }
 
 // Server responses are wrapped in { success, statusCode, message, data } (see
@@ -31,7 +27,7 @@ async function request(path, options = {}) {
   })
 
   if (res.status === 401) {
-    unauthorizedHandler?.()
+    notifyUnauthorized()
   }
 
   if (res.status === 204) return null
@@ -79,7 +75,7 @@ export async function uploadResumePhoto(id, file) {
   })
 
   if (res.status === 401) {
-    unauthorizedHandler?.()
+    notifyUnauthorized()
   }
 
   const body = await res.json().catch(() => null)

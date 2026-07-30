@@ -31,7 +31,19 @@ const projectSchema = new Schema(
   {
     name: { type: String, trim: true },
     description: { type: String, trim: true },
-    link: { type: String, trim: true },
+    liveLink: { type: String, trim: true },
+    githubLink: { type: String, trim: true },
+    bullets: { type: [String], default: [] },
+  },
+  { _id: false },
+)
+
+// Freeform, user-titled sections (Certifications, Awards, Publications,
+// Volunteer Experience, etc.) — anything that doesn't fit the fixed sections
+// above. A resume can have any number of these, each with its own title.
+const customSectionSchema = new Schema(
+  {
+    title: { type: String, trim: true },
     bullets: { type: [String], default: [] },
   },
   { _id: false },
@@ -64,6 +76,7 @@ const resumeSchema = new Schema(
       experience: { type: [experienceSchema], default: [] },
       skills: { type: [String], default: [] },
       projects: { type: [projectSchema], default: [] },
+      customSections: { type: [customSectionSchema], default: [] },
     },
   },
   { timestamps: true },
