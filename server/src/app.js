@@ -10,7 +10,17 @@ import ApiError from './utils/ApiError.js'
 
 const app = express()
 
-app.use(cors())
+// By default, `cors` only lets browser JS read a small safelist of response
+// headers (Content-Type, etc.) — custom headers are sent and visible in
+// DevTools' Network tab either way, but invisible to `fetch()`'s `res.headers`
+// unless explicitly exposed here. Needed so the client can actually read the
+// X-RateLimit-* headers rateLimiter.js sets (see QuotaBadge.jsx) — without
+// this, the badge silently gets null forever with no error anywhere.
+app.use(
+  cors({
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-RateLimit-Tier', 'Retry-After'],
+  }),
+)
 app.use(express.json())
 // Only used for the short-lived OAuth CSRF state cookie (see oauth.controller.js) —
 // nothing else in this app relies on cookies, sessions are still stateless JWT.

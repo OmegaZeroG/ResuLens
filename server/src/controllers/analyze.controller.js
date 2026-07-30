@@ -1,5 +1,6 @@
 import Resume from '../models/Resume.js'
 import Analysis from '../models/Analysis.js'
+import RateLimitEvent from '../models/RateLimitEvent.js'
 import ApiError from '../utils/ApiError.js'
 import ApiResponse from '../utils/ApiResponse.js'
 import asyncHandler from '../utils/asyncHandler.js'
@@ -7,6 +8,7 @@ import isValidObjectId from '../utils/isValidObjectId.js'
 import { extractTextFromFile, serializeResumeToText } from '../utils/resumeText.js'
 import { analyzeResumeAgainstJD } from '../services/geminiAnalysis.js'
 import { improveResumeForJD } from '../services/geminiImprove.js'
+import { TIERS } from '../middleware/rateLimiter.js'
 
 // Shared by analyze/improve — resolves resumeText from either an uploaded
 // file or one of the user's saved resumes. Throws if neither is usable.
@@ -175,4 +177,38 @@ export const getAnalysis = asyncHandler(async (req, res) => {
   const analysis = await Analysis.findOne({ _id: req.params.id, userId: req.user._id })
   if (!analysis) throw ApiError.notFound('Analysis not found')
   new ApiResponse(200, analysis, 'Analysis fetched').send(res)
+})
+
+// Self-service usage view — a user's own rate-limit history, not a
+// cross-account admin panel (ResuLens has no admin role; every other screen
+// in the app is already scoped to req.user the same way). Reads from
+// RateLimitEvent, which is a pure usage log written by rateLimiter.js —
+// Redis remains the only source of truth for whether a request was actually
+// allowed, this just makes that history visible instead of invisible.
+export const getUsageStats = asyncHandler(async (req, res) => {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+  const [counts, recent] = await Promise.all([
+    RateLimitEvent.aggregate([
+      { $match: { userId: req.user._id, createdAt: { $gte: since } } },
+      { $group: { _id: '$allowed', count: { $sum: 1 } } },
+    ]),
+    RateLimitEvent.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(20),
+  ])
+
+  const allowed = counts.find((c) => c._id === true)?.count || 0
+  const blocked = counts.find((c) => c._id === false)?.count || 0
+
+  const tier = TIERS[req.user.plan] ? req.user.plan : 'free'
+
+  new ApiResponse(
+    200,
+    {
+      tier,
+      limits: TIERS[tier],
+      last24h: { total: allowed + blocked, allowed, blocked },
+      recent,
+    },
+    'Usage stats fetched',
+  ).send(res)
 })

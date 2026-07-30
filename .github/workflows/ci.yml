@@ -49,8 +49,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # No test suite yet — this at least catches syntax errors and bad imports
-      # across every source file on every push/PR. Swap for `npm test` once a
-      # real test suite exists.
+      # Catches syntax errors and bad imports across every source file, not
+      # just the ones covered by tests below.
       - name: Syntax check all source files
         run: find src -name "*.js" -exec node --check {} \;
+
+      - name: Run test suite
+        run: npm test

@@ -1,4 +1,5 @@
 import { getAuthToken, notifyUnauthorized } from './authToken.js'
+import { captureRateLimitHeaders } from './rateLimitStore.js'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
@@ -11,6 +12,9 @@ async function handleResponse(res) {
   if (res.status === 401) {
     notifyUnauthorized()
   }
+  // Only analyze/improve responses carry these (see rateLimiter.js) — a
+  // no-op on listAnalyses/getAnalysis, which don't set them.
+  captureRateLimitHeaders(res)
   const body = await res.json().catch(() => null)
   if (!res.ok) {
     throw new Error(body?.message || `Request failed with status ${res.status}`)
@@ -86,5 +90,11 @@ export async function listAnalyses() {
 
 export async function getAnalysis(id) {
   const res = await fetch(`${API_BASE}/api/analyze/${id}`, { headers: authHeaders() })
+  return handleResponse(res)
+}
+
+// { tier, limits: { capacity, refillPerHour }, last24h: { total, allowed, blocked }, recent: [...] }
+export async function getUsageStats() {
+  const res = await fetch(`${API_BASE}/api/analyze/usage/stats`, { headers: authHeaders() })
   return handleResponse(res)
 }
