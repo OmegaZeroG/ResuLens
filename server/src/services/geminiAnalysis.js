@@ -1,5 +1,5 @@
-import { getGeminiClient, GEMINI_MODEL } from '../config/gemini.js'
 import ApiError from '../utils/ApiError.js'
+import { callGeminiJSON } from './geminiClient.js'
 
 // Gemini's structured-output mode (responseMimeType + responseSchema) makes it
 // return JSON matching this shape directly, instead of us having to coax JSON
@@ -50,47 +50,11 @@ Return your evaluation as JSON matching the provided schema.
 - suggestions: concrete and actionable, e.g. "Quantify your impact on the payments project with a metric" rather than vague advice like "improve your resume."`
 }
 
-const MAX_ATTEMPTS = 3
-const RETRYABLE_STATUS = new Set([429, 500, 503])
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function isRetryable(err) {
-  const status = err?.status ?? err?.response?.status ?? err?.cause?.status
-  if (RETRYABLE_STATUS.has(status)) return true
-  const message = String(err?.message || '').toLowerCase()
-  return message.includes('overloaded') || message.includes('rate limit') || message.includes('unavailable')
-}
-
-// Retries only transient failures (rate limits, momentary server hiccups) with
-// exponential backoff — a bad prompt or missing key fails immediately instead
-// of retrying something that will never succeed.
-async function callGeminiWithRetry(prompt) {
-  const ai = getGeminiClient()
-  let lastErr
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      })
-      return response.text
-    } catch (err) {
-      lastErr = err
-      if (!isRetryable(err) || attempt === MAX_ATTEMPTS) break
-      await sleep(500 * 2 ** (attempt - 1)) // 500ms, 1s
-    }
-  }
-
-  throw lastErr
-}
+// This schema is small, so it's less exposed to the thinking-budget
+// truncation issue than the full-resume schemas in geminiImprove.js/
+// geminiImport.js, but a long suggestions list on a verbose JD could still
+// hit it — same shared helper, same protection either way.
+const MAX_OUTPUT_TOKENS = 4096
 
 export async function analyzeResumeAgainstJD(resumeText, jdText) {
   if (!resumeText?.trim()) {
@@ -104,9 +68,14 @@ export async function analyzeResumeAgainstJD(resumeText, jdText) {
 
   let raw
   try {
-    raw = await callGeminiWithRetry(prompt)
+    raw = await callGeminiJSON({ prompt, schema: RESPONSE_SCHEMA, maxOutputTokens: MAX_OUTPUT_TOKENS })
   } catch (err) {
     console.error('Gemini analysis call failed:', err)
+    if (String(err?.message || '').includes('cut off')) {
+      throw ApiError.internal(
+        'The AI response was too long to complete — try again with a shorter resume or job description',
+      )
+    }
     throw ApiError.internal('AI analysis is temporarily unavailable — please try again in a moment')
   }
 

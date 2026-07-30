@@ -1,6 +1,6 @@
-import { getGeminiClient, GEMINI_MODEL } from '../config/gemini.js'
 import ApiError from '../utils/ApiError.js'
 import { extractContactHints } from '../utils/resumeText.js'
+import { callGeminiJSON } from './geminiClient.js'
 
 // Mirrors the client's Resume schema (see client's useResume.js emptyResume /
 // server's Resume.js) so the output can be saved directly as a new resume.
@@ -120,44 +120,12 @@ ${keywordHint}
 Return the full improved resume as JSON matching the provided schema — the complete resume, not just the changed parts. Dates can stay as plain strings in whatever format the original used (e.g. "2022", "Jan 2022", "2022-01").`
 }
 
-const MAX_ATTEMPTS = 3
-const RETRYABLE_STATUS = new Set([429, 500, 503])
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function isRetryable(err) {
-  const status = err?.status ?? err?.response?.status ?? err?.cause?.status
-  if (RETRYABLE_STATUS.has(status)) return true
-  const message = String(err?.message || '').toLowerCase()
-  return message.includes('overloaded') || message.includes('rate limit') || message.includes('unavailable')
-}
-
-async function callGeminiWithRetry(prompt) {
-  const ai = getGeminiClient()
-  let lastErr
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: RESUME_SCHEMA,
-        },
-      })
-      return response.text
-    } catch (err) {
-      lastErr = err
-      if (!isRetryable(err) || attempt === MAX_ATTEMPTS) break
-      await sleep(500 * 2 ** (attempt - 1))
-    }
-  }
-
-  throw lastErr
-}
+// RESUME_SCHEMA is a big, deeply nested schema (every section of a full
+// resume) — real headroom matters here more than the small analysis schema,
+// since a long resume genuinely needs more tokens to render in full. See
+// geminiClient.js for the shared retry/thinking-budget-probe logic this now
+// goes through.
+const MAX_OUTPUT_TOKENS = 16384
 
 function asStringArray(v) {
   return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
@@ -255,9 +223,14 @@ export async function improveResumeForJD(resumeText, jdText, missingKeywords = [
 
   let raw
   try {
-    raw = await callGeminiWithRetry(prompt)
+    raw = await callGeminiJSON({ prompt, schema: RESUME_SCHEMA, maxOutputTokens: MAX_OUTPUT_TOKENS })
   } catch (err) {
     console.error('Gemini improve call failed:', err)
+    if (String(err?.message || '').includes('cut off')) {
+      throw ApiError.internal(
+        'The AI response was too long to complete — try again with a shorter resume or job description',
+      )
+    }
     throw ApiError.internal('AI resume improvement is temporarily unavailable — please try again in a moment')
   }
 

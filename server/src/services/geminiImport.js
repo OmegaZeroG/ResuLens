@@ -1,6 +1,6 @@
-import { getGeminiClient, GEMINI_MODEL } from '../config/gemini.js'
 import ApiError from '../utils/ApiError.js'
 import { RESUME_SCHEMA, normalizeAiResume } from './geminiImprove.js'
+import { callGeminiJSON } from './geminiClient.js'
 
 // Unlike improveResumeForJD (which deliberately rewrites content to target a
 // job description), this is a faithful transcription: take an uploaded
@@ -28,44 +28,10 @@ ${resumeText}
 Return the resume as JSON matching the provided schema — the complete resume, every section, mapped as faithfully as possible.`
 }
 
-const MAX_ATTEMPTS = 3
-const RETRYABLE_STATUS = new Set([429, 500, 503])
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function isRetryable(err) {
-  const status = err?.status ?? err?.response?.status ?? err?.cause?.status
-  if (RETRYABLE_STATUS.has(status)) return true
-  const message = String(err?.message || '').toLowerCase()
-  return message.includes('overloaded') || message.includes('rate limit') || message.includes('unavailable')
-}
-
-async function callGeminiWithRetry(prompt) {
-  const ai = getGeminiClient()
-  let lastErr
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: RESUME_SCHEMA,
-        },
-      })
-      return response.text
-    } catch (err) {
-      lastErr = err
-      if (!isRetryable(err) || attempt === MAX_ATTEMPTS) break
-      await sleep(500 * 2 ** (attempt - 1))
-    }
-  }
-
-  throw lastErr
-}
+// Shares the same big RESUME_SCHEMA as geminiImprove.js and just as capable
+// of needing real headroom on a long resume — see geminiClient.js for the
+// shared retry/thinking-budget-probe logic this now goes through.
+const MAX_OUTPUT_TOKENS = 16384
 
 // Returns { title, sections } shaped exactly like our Resume model, ready to
 // pass straight into Resume.create(). The caller is responsible for actually
@@ -79,9 +45,12 @@ export async function importResumeFromText(resumeText) {
 
   let raw
   try {
-    raw = await callGeminiWithRetry(prompt)
+    raw = await callGeminiJSON({ prompt, schema: RESUME_SCHEMA, maxOutputTokens: MAX_OUTPUT_TOKENS })
   } catch (err) {
     console.error('Gemini import call failed:', err)
+    if (String(err?.message || '').includes('cut off')) {
+      throw ApiError.internal('The AI response was too long to complete — try again with a shorter resume file')
+    }
     throw ApiError.internal('AI resume import is temporarily unavailable — please try again in a moment')
   }
 
