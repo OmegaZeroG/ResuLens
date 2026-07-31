@@ -8,8 +8,8 @@ import { ExperienceSection } from './ExperienceSection'
 import { SkillsSection } from './SkillsSection'
 import { ProjectsSection } from './ProjectsSection'
 import { CustomSectionsSection } from './CustomSectionsSection'
-import { ResumePreview } from './ResumePreview'
 import { ConfirmDialog } from './ConfirmDialog'
+import { TEMPLATES, getTemplate } from './templates'
 
 export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
   const {
@@ -31,10 +31,13 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
     projects,
     customSections,
     save,
+    setTemplate,
     uploadPhoto,
     removePhoto,
     resetForm,
   } = useResume(resumeId)
+
+  const ActiveTemplate = getTemplate(resume.template).component
 
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState(null)
@@ -78,6 +81,18 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             onChange={(e) => setTitle(e.target.value)}
             className="w-64 rounded-md border border-transparent px-2 py-1 text-lg font-semibold text-slate-800 hover:border-slate-200 focus:border-slate-300 focus:outline-none"
           />
+          <select
+            value={resume.template}
+            onChange={(e) => setTemplate(e.target.value)}
+            title="Template"
+            className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-700 focus:border-slate-500 focus:outline-none"
+          >
+            {TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-3">
           {(error || exportError) && (
@@ -167,7 +182,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
         </div>
 
         <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
-          <ResumePreview resume={resume} />
+          <ActiveTemplate resume={resume} />
         </div>
       </div>
 
