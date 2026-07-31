@@ -48,6 +48,11 @@ async function request(path, options = {}) {
   })
 
   if (res.status === 401) {
+    // A 401 here fires the global auto-logout handler in useAuth.jsx. Kept
+    // as a real console.warn (not removed after the OAuth bug was fixed) —
+    // an unexpected 401 elsewhere in the app is still worth knowing about
+    // immediately rather than silently bouncing the user to the login screen.
+    console.warn(`[resumeApi] 401 on ${res.url} — logging out`)
     notifyUnauthorized()
   }
 
