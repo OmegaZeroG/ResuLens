@@ -10,6 +10,7 @@ import {
 export const emptyResume = {
   _id: null,
   title: 'My Resume',
+  template: 'default',
   photoUrl: '',
   sections: {
     contact: {
@@ -160,6 +161,10 @@ export function useResume(resumeId) {
     setResume((prev) => ({ ...prev, title }))
   }, [])
 
+  const setTemplate = useCallback((template) => {
+    setResume((prev) => ({ ...prev, template }))
+  }, [])
+
   const setContactField = useCallback((field, value) => {
     setResume((prev) => {
       const contact = { ...prev.sections.contact, [field]: value }
@@ -246,7 +251,7 @@ export function useResume(resumeId) {
   // Returns the normalized saved resume directly, since React state updates aren't
   // synchronous and callers may need the fresh _id immediately.
   const persist = useCallback(async () => {
-    const payload = { title: resume.title, photoUrl: resume.photoUrl, sections: resume.sections }
+    const payload = { title: resume.title, template: resume.template, photoUrl: resume.photoUrl, sections: resume.sections }
     const saved = resume._id ? await updateResume(resume._id, payload) : await createResume(payload)
     const normalized = normalizeResume(saved)
     setResume(normalized)
@@ -325,6 +330,7 @@ export function useResume(resumeId) {
     error,
     lastSavedAt,
     setTitle,
+    setTemplate,
     setContactField,
     addContactLink,
     updateContactLink,

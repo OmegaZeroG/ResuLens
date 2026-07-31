@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listResumes, deleteResume as deleteResumeApi, importResume } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
+import { getAvatarUrl } from '../../utils/imagekitTransform'
 
 export function ResumeDashboard({
   user,
@@ -160,7 +161,7 @@ export function ResumeDashboard({
               >
                 <div className="flex items-center gap-3">
                   {r.photoUrl ? (
-                    <img src={r.photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <img src={getAvatarUrl(r.photoUrl, { size: 80 })} alt="" className="h-10 w-10 rounded-full object-cover" />
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-500">
                       {(r.title || '?').charAt(0).toUpperCase()}

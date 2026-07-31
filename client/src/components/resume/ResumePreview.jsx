@@ -2,6 +2,7 @@ import { forwardRef } from 'react'
 import { MailIcon, PhoneIcon, MapPinIcon, GithubIcon, LinkIcon, InitialsIcon, detectLinkIcon } from '../common/icons'
 import { withProtocol } from '../../utils/links'
 import { getInitials } from '../../utils/name'
+import { getAvatarUrl } from '../../utils/imagekitTransform'
 
 // Bold uppercase label with a colored rule underneath — the classic resume
 // "section divider" look. Used for every section so the eye can instantly
@@ -113,7 +114,7 @@ export const ResumePreview = forwardRef(function ResumePreview({ resume }, ref) 
               // No photo → no badge at all, rather than an initials
               // placeholder standing in for a real photo.
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-indigo-100">
-                <img src={resume.photoUrl} alt="Profile" className="h-full w-full object-cover object-center" />
+                <img src={getAvatarUrl(resume.photoUrl, { size: 128 })} alt="Profile" className="h-full w-full object-cover object-center" />
               </div>
             )}
             <h1 className="text-2xl font-extrabold uppercase tracking-wide text-slate-900">

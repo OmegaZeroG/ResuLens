@@ -1,6 +1,7 @@
 import { Field, SectionCard } from './Field'
 import { detectLinkIcon, InitialsIcon } from '../common/icons'
 import { getInitials } from '../../utils/name'
+import { getAvatarUrl } from '../../utils/imagekitTransform'
 
 export function ContactSection({
   contact,
@@ -24,7 +25,7 @@ export function ContactSection({
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-slate-100">
           {photoUrl ? (
-            <img src={photoUrl} alt="Profile" className="h-full w-full object-cover" />
+            <img src={getAvatarUrl(photoUrl, { size: 128 })} alt="Profile" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
               No photo

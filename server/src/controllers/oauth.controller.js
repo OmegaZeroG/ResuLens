@@ -62,6 +62,7 @@ export const googleRedirect = asyncHandler(async (req, res) => {
     state,
     prompt: 'select_account',
   })
+  console.log('[oauth:google] redirecting to Google, redirect_uri =', oauthConfig.google.redirectUri)
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
 })
 
@@ -70,7 +71,10 @@ export const googleCallback = asyncHandler(async (req, res) => {
   const savedState = req.cookies?.[STATE_COOKIE]
   res.clearCookie(STATE_COOKIE)
 
+  console.log('[oauth:google] callback hit — code present:', Boolean(code), '| state present:', Boolean(state), '| cookie present:', Boolean(savedState), '| match:', state === savedState)
+
   if (!code || !state || state !== savedState) {
+    console.warn('[oauth:google] rejecting — code/state/cookie check failed (see booleans above). This is almost always the cookie not round-tripping: check that GOOGLE_REDIRECT_URI in .env is http://localhost:5000/... (not 127.0.0.1 — that\'s a different host as far as cookies are concerned) and that nothing is stripping cookies between the two hops.')
     return redirectToClient(res, { oauthError: 'google' })
   }
 
@@ -87,28 +91,37 @@ export const googleCallback = asyncHandler(async (req, res) => {
   })
   const tokenBody = await tokenRes.json()
   if (!tokenRes.ok || !tokenBody.access_token) {
-    console.error('Google token exchange failed:', tokenBody)
+    console.error('[oauth:google] token exchange failed:', tokenBody)
     return redirectToClient(res, { oauthError: 'google' })
   }
+  console.log('[oauth:google] token exchange OK')
 
   const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${tokenBody.access_token}` },
   })
   const profile = await profileRes.json()
   if (!profileRes.ok || !profile.email) {
-    console.error('Google profile fetch failed:', profile)
+    console.error('[oauth:google] profile fetch failed:', profile)
+    return redirectToClient(res, { oauthError: 'google' })
+  }
+  console.log('[oauth:google] profile OK for', profile.email)
+
+  let user
+  try {
+    user = await findOrCreateOAuthUser({
+      providerField: 'googleId',
+      providerId: profile.sub,
+      email: profile.email,
+      name: profile.name,
+      avatarUrl: profile.picture,
+    })
+  } catch (err) {
+    console.error('[oauth:google] findOrCreateOAuthUser threw:', err)
     return redirectToClient(res, { oauthError: 'google' })
   }
 
-  const user = await findOrCreateOAuthUser({
-    providerField: 'googleId',
-    providerId: profile.sub,
-    email: profile.email,
-    name: profile.name,
-    avatarUrl: profile.picture,
-  })
-
   const jwtToken = signToken(user._id)
+  console.log('[oauth:google] success, redirecting to client with token for user', user._id.toString())
   redirectToClient(res, { token: jwtToken })
 })
 
@@ -124,6 +137,7 @@ export const githubRedirect = asyncHandler(async (req, res) => {
     scope: 'read:user user:email',
     state,
   })
+  console.log('[oauth:github] redirecting to GitHub, redirect_uri =', oauthConfig.github.redirectUri)
   res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`)
 })
 
@@ -132,7 +146,10 @@ export const githubCallback = asyncHandler(async (req, res) => {
   const savedState = req.cookies?.[STATE_COOKIE]
   res.clearCookie(STATE_COOKIE)
 
+  console.log('[oauth:github] callback hit — code present:', Boolean(code), '| state present:', Boolean(state), '| cookie present:', Boolean(savedState), '| match:', state === savedState)
+
   if (!code || !state || state !== savedState) {
+    console.warn('[oauth:github] rejecting — code/state/cookie check failed (see booleans above).')
     return redirectToClient(res, { oauthError: 'github' })
   }
 
@@ -148,18 +165,20 @@ export const githubCallback = asyncHandler(async (req, res) => {
   })
   const tokenBody = await tokenRes.json()
   if (!tokenRes.ok || !tokenBody.access_token) {
-    console.error('GitHub token exchange failed:', tokenBody)
+    console.error('[oauth:github] token exchange failed:', tokenBody)
     return redirectToClient(res, { oauthError: 'github' })
   }
+  console.log('[oauth:github] token exchange OK')
 
   const profileRes = await fetch('https://api.github.com/user', {
     headers: { Authorization: `Bearer ${tokenBody.access_token}`, Accept: 'application/vnd.github+json' },
   })
   const profile = await profileRes.json()
   if (!profileRes.ok || !profile.id) {
-    console.error('GitHub profile fetch failed:', profile)
+    console.error('[oauth:github] profile fetch failed:', profile)
     return redirectToClient(res, { oauthError: 'github' })
   }
+  console.log('[oauth:github] profile OK for', profile.login)
 
   // GitHub only includes a public email in /user if the user opted in; fall
   // back to /user/emails (still needs the user:email scope we requested).
@@ -176,17 +195,25 @@ export const githubCallback = asyncHandler(async (req, res) => {
   }
 
   if (!email) {
+    console.warn('[oauth:github] no verified email found on the account')
     return redirectToClient(res, { oauthError: 'github_no_email' })
   }
 
-  const user = await findOrCreateOAuthUser({
-    providerField: 'githubId',
-    providerId: String(profile.id),
-    email,
-    name: profile.name || profile.login,
-    avatarUrl: profile.avatar_url,
-  })
+  let user
+  try {
+    user = await findOrCreateOAuthUser({
+      providerField: 'githubId',
+      providerId: String(profile.id),
+      email,
+      name: profile.name || profile.login,
+      avatarUrl: profile.avatar_url,
+    })
+  } catch (err) {
+    console.error('[oauth:github] findOrCreateOAuthUser threw:', err)
+    return redirectToClient(res, { oauthError: 'github' })
+  }
 
   const jwtToken = signToken(user._id)
+  console.log('[oauth:github] success, redirecting to client with token for user', user._id.toString())
   redirectToClient(res, { token: jwtToken })
 })

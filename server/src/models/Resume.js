@@ -95,6 +95,15 @@ const resumeSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true, trim: true, default: 'Untitled Resume' },
+    // Which layout renders this resume in the live preview and PDF export.
+    // Enum kept ahead of what's actually built yet (only 'default' and
+    // 'jakes-resume' have real components so far) so resumes created against
+    // upcoming templates don't need a migration once they land.
+    template: {
+      type: String,
+      enum: ['default', 'jakes-resume', 'compact-two-column', 'modern', 'harvard'],
+      default: 'default',
+    },
     photoUrl: { type: String, trim: true },
     // ImageKit's file id — needed to actually delete the file from ImageKit when the
     // photo is removed or replaced, not just clear the URL on our side.

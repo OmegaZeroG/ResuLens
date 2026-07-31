@@ -14,8 +14,8 @@ import { importResumeFromText } from '../services/geminiImport.js'
 // not 403), so we don't leak which resume IDs are real to non-owners.
 
 export const createResume = asyncHandler(async (req, res) => {
-  const { title, photoUrl, sections } = req.body
-  const resume = await Resume.create({ title, photoUrl, sections, userId: req.user._id })
+  const { title, template, photoUrl, sections } = req.body
+  const resume = await Resume.create({ title, template, photoUrl, sections, userId: req.user._id })
   new ApiResponse(201, resume, 'Resume created').send(res)
 })
 
@@ -39,10 +39,10 @@ export const updateResume = asyncHandler(async (req, res) => {
   }
   // Only these fields are ever writable via this endpoint — never trust the body
   // for userId/photoFileId, both of which are server-controlled.
-  const { title, photoUrl, sections } = req.body
+  const { title, template, photoUrl, sections } = req.body
   const resume = await Resume.findOneAndUpdate(
     { _id: req.params.id, userId: req.user._id },
-    { title, photoUrl, sections },
+    { title, template, photoUrl, sections },
     { new: true, runValidators: true },
   )
   if (!resume) throw ApiError.notFound('Resume not found')

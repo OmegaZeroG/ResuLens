@@ -10,7 +10,7 @@ import { UsagePage } from './components/analyze/UsagePage'
 import { AtsScorePage } from './components/analyze/AtsScorePage'
 
 function AppShell() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading, logout, authError } = useAuth()
   // 'dashboard' | 'builder' | 'analyze' | 'history' | 'usage' | 'ats' — which logged-in screen is showing.
   const [view, setView] = useState('dashboard')
   // Only meaningful when view === 'builder': null = a brand new (unsaved)
@@ -35,8 +35,16 @@ function AppShell() {
   }
 
   if (!user) {
-    if (authMode) {
-      return <AuthPage initialMode={authMode} onBack={() => setAuthMode(null)} />
+    // A failed OAuth round trip lands back here with `authError` set (see
+    // useAuth's init effect) but no `authMode` — the user never explicitly
+    // clicked "Log in" this time, they just got bounced back from Google/
+    // GitHub. Without this, the error was silently swallowed: LandingPage
+    // has nowhere to show it, so the user just saw the marketing page again
+    // with zero indication anything had gone wrong. Treat an OAuth error as
+    // an implicit "show the login screen" so the message (and a way to
+    // retry) is actually visible.
+    if (authMode || authError) {
+      return <AuthPage initialMode={authMode || 'login'} onBack={() => setAuthMode(null)} />
     }
     return (
       <LandingPage onGetStarted={() => setAuthMode('signup')} onLogin={() => setAuthMode('login')} />
