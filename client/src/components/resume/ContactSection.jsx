@@ -1,7 +1,26 @@
+import { useState } from 'react'
 import { Field, SectionCard } from './Field'
 import { detectLinkIcon, InitialsIcon } from '../common/icons'
 import { getInitials } from '../../utils/name'
 import { getAvatarUrl } from '../../utils/imagekitTransform'
+import { removeBackgroundHybrid } from '../../utils/backgroundRemoval'
+import { compositeOnColor } from '../../utils/backgroundComposite'
+
+const FILL_SWATCHES = [
+  { label: 'Transparent', value: '' },
+  { label: 'White', value: '#ffffff' },
+  { label: 'Light gray', value: '#f1f5f9' },
+  { label: 'Navy', value: '#1e293b' },
+]
+
+const SOURCE_LABEL = {
+  imagekit: 'via ImageKit',
+  'client-ml': 'via on-device AI',
+}
+
+function blobToFile(blob, filename) {
+  return new File([blob], filename, { type: blob.type || 'image/png' })
+}
 
 export function ContactSection({
   contact,
@@ -14,10 +33,57 @@ export function ContactSection({
   onUpdateLink,
   onRemoveLink,
 }) {
+  const [bgProcessing, setBgProcessing] = useState(false)
+  const [bgError, setBgError] = useState('')
+  // Holds the removal result until the user picks a fill (or transparent)
+  // and applies it — nothing is uploaded until they confirm.
+  const [bgPreview, setBgPreview] = useState(null) // { blob, url, source }
+  const [fillColor, setFillColor] = useState('')
+
   function handleFileChange(e) {
     const file = e.target.files?.[0]
     if (file) onUploadPhoto(file)
     e.target.value = '' // allow re-selecting the same file later
+  }
+
+  async function handleRemoveBackground() {
+    setBgError('')
+    setBgProcessing(true)
+    try {
+      const { blob, source } = await removeBackgroundHybrid(photoUrl)
+      setFillColor('')
+      setBgPreview({ blob, url: URL.createObjectURL(blob), source })
+    } catch (err) {
+      setBgError(err.message || 'Background removal failed')
+    } finally {
+      setBgProcessing(false)
+    }
+  }
+
+  function handlePickFill(value) {
+    setFillColor(value)
+  }
+
+  async function handleApplyBackground() {
+    if (!bgPreview) return
+    setBgError('')
+    setBgProcessing(true)
+    try {
+      const finalBlob = fillColor ? await compositeOnColor(bgPreview.blob, fillColor) : bgPreview.blob
+      const file = blobToFile(finalBlob, 'photo-bg.png')
+      await onUploadPhoto(file)
+      handleCancelBackground()
+    } catch (err) {
+      setBgError(err.message || 'Failed to apply background')
+    } finally {
+      setBgProcessing(false)
+    }
+  }
+
+  function handleCancelBackground() {
+    if (bgPreview) URL.revokeObjectURL(bgPreview.url)
+    setBgPreview(null)
+    setFillColor('')
   }
 
   return (
@@ -57,6 +123,96 @@ export function ContactSection({
           )}
         </div>
       </div>
+
+      {photoUrl && (
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+          {!bgPreview ? (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-slate-700">Background removal</p>
+                <p className="text-xs text-slate-500">
+                  Tries ImageKit first (better quality), automatically falls back to on-device AI if that fails.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveBackground}
+                disabled={bgProcessing || uploadingPhoto}
+                className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {bgProcessing ? 'Processing…' : 'Remove background'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-slate-200"
+                  style={{
+                    backgroundColor: fillColor || undefined,
+                    backgroundImage: fillColor
+                      ? undefined
+                      : 'repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%)',
+                    backgroundSize: fillColor ? undefined : '10px 10px',
+                  }}
+                >
+                  <img src={bgPreview.url} alt="Background removed preview" className="h-full w-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-700">Background removed ({SOURCE_LABEL[bgPreview.source]})</p>
+                  <p className="text-xs text-slate-500">Pick a fill color, or keep it transparent, then apply.</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {FILL_SWATCHES.map((swatch) => (
+                      <button
+                        key={swatch.label}
+                        type="button"
+                        onClick={() => handlePickFill(swatch.value)}
+                        title={swatch.label}
+                        className={`h-6 w-6 rounded-full border-2 ${
+                          fillColor === swatch.value ? 'border-indigo-600' : 'border-slate-300'
+                        }`}
+                        style={{
+                          backgroundColor: swatch.value || undefined,
+                          backgroundImage: swatch.value
+                            ? undefined
+                            : 'repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%)',
+                          backgroundSize: swatch.value ? undefined : '6px 6px',
+                        }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={fillColor || '#ffffff'}
+                      onChange={(e) => handlePickFill(e.target.value)}
+                      title="Custom color"
+                      className="h-6 w-8 cursor-pointer rounded border border-slate-300 p-0"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleApplyBackground}
+                  disabled={bgProcessing || uploadingPhoto}
+                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {bgProcessing ? 'Applying…' : 'Apply'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelBackground}
+                  disabled={bgProcessing}
+                  className="rounded-md border border-transparent px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {bgError && <p className="mt-2 text-xs text-red-500">{bgError}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Field
