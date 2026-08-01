@@ -152,15 +152,11 @@ export function LandingPage({ onGetStarted, onLogin }) {
             <IconSparkle />
           </div>
           <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <h2 className="text-lg font-semibold text-white">AI-powered ATS scoring</h2>
-              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
-                Coming soon
-              </span>
-            </div>
+            <h2 className="text-lg font-semibold text-white">AI-powered resume analysis</h2>
             <p className="mt-1.5 text-sm text-indigo-100">
               Paste a job description and get a match score, missing keywords, and concrete
-              suggestions to tailor your resume — built next, right after the core builder.
+              suggestions to tailor your resume — or run a JD-free ATS check to catch formatting
+              and clarity issues before you apply.
             </p>
           </div>
         </div>
@@ -168,7 +164,7 @@ export function LandingPage({ onGetStarted, onLogin }) {
 
       <footer className="border-t border-slate-100">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-sm text-slate-400 sm:flex-row">
-          <span>Built solo by Om Pathrabe.</span>
+          <span>Built by Om Pathrabe.</span>
           <a href={REPO_URL} className="hover:text-slate-600">
             View on GitHub
           </a>
