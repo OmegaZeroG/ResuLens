@@ -64,8 +64,8 @@ ResuLens scores a resume against a real job description, tells you exactly what'
 |---|---|
 | ![Landing page](docs/screenshots/landing.png) | ![Login](docs/screenshots/auth.png) |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Resume builder](docs/screenshots/builder.png) |
-| ![Templates](docs/screenshots/templates.png) | ![Analyze against a job](docs/screenshots/analyze.png) |
-| ![ATS score](docs/screenshots/ats-score.png) | ![Admin panel](docs/screenshots/admin.png) |
+| ![Analyze against a job](docs/screenshots/analyze.png) | ![ATS score](docs/screenshots/ats-score.png) |
+| ![Admin panel](docs/screenshots/admin.png) | |
 
 <sub>Full checklist / exact filenames: [`docs/screenshots/README.md`](docs/screenshots/README.md)</sub>
 
