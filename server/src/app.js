@@ -11,6 +11,14 @@ import ApiError from './utils/ApiError.js'
 
 const app = express()
 
+// Locked to known origins rather than left wide open, now that this is
+// heading toward a real deploy. CLIENT_URL is the same env var
+// oauth.controller.js already uses for where to redirect back to after
+// login — one variable, one meaning ("where the frontend lives"). Localhost
+// dev is always allowed too so `npm run dev` keeps working unchanged
+// regardless of what CLIENT_URL is set to in this environment.
+const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:5173', 'http://localhost:5173']
+
 // By default, `cors` only lets browser JS read a small safelist of response
 // headers (Content-Type, etc.) — custom headers are sent and visible in
 // DevTools' Network tab either way, but invisible to `fetch()`'s `res.headers`
@@ -19,6 +27,7 @@ const app = express()
 // this, the badge silently gets null forever with no error anywhere.
 app.use(
   cors({
+    origin: [...new Set(allowedOrigins)],
     exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'X-RateLimit-Tier', 'Retry-After'],
   }),
 )
