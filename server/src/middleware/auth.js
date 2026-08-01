@@ -30,3 +30,14 @@ export async function requireAuth(req, res, next) {
     }
   }
 }
+
+// Gate for the admin panel (/api/admin/*) — must run after requireAuth,
+// since it needs req.user already loaded. A logged-in but non-admin user
+// hitting one of these routes gets a clean 403, same treatment as any other
+// authorized-but-not-allowed action elsewhere in the app.
+export function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) {
+    return next(ApiError.forbidden('Admin access required'))
+  }
+  next()
+}

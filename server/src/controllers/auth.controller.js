@@ -14,6 +14,7 @@ function toPublicUser(user) {
     name: user.name,
     email: user.email,
     plan: user.plan,
+    isAdmin: user.isAdmin,
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
   }

@@ -8,10 +8,11 @@ import { AnalyzePage } from './components/analyze/AnalyzePage'
 import { AnalysisHistoryPage } from './components/analyze/AnalysisHistoryPage'
 import { UsagePage } from './components/analyze/UsagePage'
 import { AtsScorePage } from './components/analyze/AtsScorePage'
+import { AdminPage } from './components/admin/AdminPage'
 
 function AppShell() {
   const { user, loading, logout, authError } = useAuth()
-  // 'dashboard' | 'builder' | 'analyze' | 'history' | 'usage' | 'ats' — which logged-in screen is showing.
+  // 'dashboard' | 'builder' | 'analyze' | 'history' | 'usage' | 'ats' | 'admin' — which logged-in screen is showing.
   const [view, setView] = useState('dashboard')
   // Only meaningful when view === 'builder': null = a brand new (unsaved)
   // resume, a string = editing that resume's _id.
@@ -83,6 +84,14 @@ function AppShell() {
     return <AtsScorePage onBack={() => setView('dashboard')} />
   }
 
+  // Server-side requireAdmin is the real gate — this client-side check is
+  // just UX (no point rendering the screen for someone every request in it
+  // will 403 for). A non-admin who somehow forces view === 'admin' just
+  // falls through to the normal dashboard below instead of seeing it.
+  if (view === 'admin' && user.isAdmin) {
+    return <AdminPage onBack={() => setView('dashboard')} />
+  }
+
   if (view === 'builder') {
     return (
       <ResumeBuilder
@@ -110,6 +119,7 @@ function AppShell() {
       onOpenHistory={() => setView('history')}
       onOpenUsage={() => setView('usage')}
       onOpenAtsScore={() => setView('ats')}
+      onOpenAdmin={() => setView('admin')}
     />
   )
 }

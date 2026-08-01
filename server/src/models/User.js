@@ -24,6 +24,13 @@ const userSchema = new Schema(
     githubId: { type: String, unique: true, sparse: true },
     avatarUrl: { type: String, trim: true },
     plan: { type: String, enum: ['free', 'premium'], default: 'free' },
+    // Gates the admin panel (see middleware/auth.js's requireAdmin). No
+    // in-app way to grant this to yourself or anyone else — the first (and
+    // any future) admin is set directly via server/scripts/setAdmin.js, run
+    // locally against the real database. Deliberate: an admin session being
+    // able to mint more admins over the API is a bigger privilege-escalation
+    // surface than this project needs.
+    isAdmin: { type: Boolean, default: false },
   },
   { timestamps: true },
 )

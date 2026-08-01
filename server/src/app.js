@@ -6,6 +6,7 @@ import healthRouter from './routes/health.routes.js'
 import resumeRouter from './routes/resume.routes.js'
 import authRouter from './routes/auth.routes.js'
 import analyzeRouter from './routes/analyze.routes.js'
+import adminRouter from './routes/admin.routes.js'
 import ApiError from './utils/ApiError.js'
 
 const app = express()
@@ -30,6 +31,7 @@ app.use('/api/health', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/resume', resumeRouter)
 app.use('/api/analyze', analyzeRouter)
+app.use('/api/admin', adminRouter)
 
 app.use((req, res) => {
   res.status(404).json({ success: false, statusCode: 404, message: 'Not found' })

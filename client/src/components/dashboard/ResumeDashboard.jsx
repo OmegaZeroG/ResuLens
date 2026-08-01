@@ -12,6 +12,7 @@ export function ResumeDashboard({
   onOpenHistory,
   onOpenUsage,
   onOpenAtsScore,
+  onOpenAdmin,
 }) {
   const [resumes, setResumes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -114,6 +115,15 @@ export function ResumeDashboard({
           >
             Analyze against a job
           </button>
+          {user?.isAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              Admin
+            </button>
+          )}
           {user?.avatarUrl && (
             <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
           )}
