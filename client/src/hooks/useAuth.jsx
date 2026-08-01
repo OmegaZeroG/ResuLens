@@ -13,6 +13,8 @@ function readableOauthError(code) {
       return 'GitHub sign-in failed. Please try again.'
     case 'github_no_email':
       return "We couldn't get a verified email from your GitHub account — make sure you have one set, then try again."
+    case 'suspended':
+      return 'This account has been suspended. Contact support if you think this is a mistake.'
     default:
       return 'Sign-in failed. Please try again.'
   }

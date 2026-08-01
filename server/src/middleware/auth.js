@@ -19,6 +19,9 @@ export async function requireAuth(req, res, next) {
     if (!user) {
       throw ApiError.unauthorized('User no longer exists')
     }
+    if (user.isActive === false) {
+      throw ApiError.unauthorized('This account has been suspended')
+    }
 
     req.user = user
     next()

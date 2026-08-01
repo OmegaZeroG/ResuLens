@@ -15,6 +15,7 @@ function toPublicUser(user) {
     email: user.email,
     plan: user.plan,
     isAdmin: user.isAdmin,
+    isActive: user.isActive,
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
   }
@@ -60,6 +61,10 @@ export const login = asyncHandler(async (req, res) => {
   const matches = await user.comparePassword(password)
   if (!matches) {
     throw ApiError.unauthorized('Invalid email or password')
+  }
+
+  if (user.isActive === false) {
+    throw ApiError.unauthorized('This account has been suspended. Contact support if you think this is a mistake.')
   }
 
   const token = signToken(user._id)

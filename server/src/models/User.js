@@ -31,6 +31,12 @@ const userSchema = new Schema(
     // able to mint more admins over the API is a bigger privilege-escalation
     // surface than this project needs.
     isAdmin: { type: Boolean, default: false },
+    // Suspend switch for the admin panel. Checked in requireAuth (blocks
+    // every authenticated request immediately, regardless of how the token
+    // was issued), plus at the two places a fresh token gets minted
+    // (password login, OAuth callbacks) so a suspended user sees a clear
+    // message instead of a generic-looking failure.
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 )

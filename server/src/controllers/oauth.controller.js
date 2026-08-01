@@ -120,6 +120,11 @@ export const googleCallback = asyncHandler(async (req, res) => {
     return redirectToClient(res, { oauthError: 'google' })
   }
 
+  if (user.isActive === false) {
+    console.warn('[oauth:google] rejecting login — account is suspended:', user._id.toString())
+    return redirectToClient(res, { oauthError: 'suspended' })
+  }
+
   const jwtToken = signToken(user._id)
   console.log('[oauth:google] success, redirecting to client with token for user', user._id.toString())
   redirectToClient(res, { token: jwtToken })
@@ -211,6 +216,11 @@ export const githubCallback = asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('[oauth:github] findOrCreateOAuthUser threw:', err)
     return redirectToClient(res, { oauthError: 'github' })
+  }
+
+  if (user.isActive === false) {
+    console.warn('[oauth:github] rejecting login — account is suspended:', user._id.toString())
+    return redirectToClient(res, { oauthError: 'suspended' })
   }
 
   const jwtToken = signToken(user._id)

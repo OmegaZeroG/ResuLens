@@ -35,6 +35,26 @@ export function listUsers(q = '') {
   return request(`/users${query}`)
 }
 
+export function getStats() {
+  return request('/stats')
+}
+
+export function getUserDetail(id) {
+  return request(`/users/${id}`)
+}
+
 export function updateUserPlan(id, plan) {
   return request(`/users/${id}/plan`, { method: 'PATCH', body: JSON.stringify({ plan }) })
+}
+
+export function setUserActive(id, isActive) {
+  return request(`/users/${id}/active`, { method: 'PATCH', body: JSON.stringify({ isActive }) })
+}
+
+export function resetUserRateLimit(id) {
+  return request(`/users/${id}/reset-limit`, { method: 'POST' })
+}
+
+export function deleteUser(id) {
+  return request(`/users/${id}`, { method: 'DELETE' })
 }
