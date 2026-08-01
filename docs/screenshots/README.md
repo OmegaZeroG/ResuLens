@@ -1,6 +1,6 @@
 # Screenshot checklist
 
-The main README references these files by exact name. Drop each screenshot into this folder (`docs/screenshots/`) with the exact filename below and they'll render automatically on GitHub — no other changes needed.
+The main README embeds each of these inline, right under the feature it shows (no standalone "Screenshots" section) — drop each file into this folder (`docs/screenshots/`) with the exact filename below and it renders automatically on GitHub, no other changes needed.
 
 PNG or JPG both work; keep the extension consistent with what's listed (rename on your end if you'd rather use `.jpg`, then update the one line in `../../README.md` that references it).
 

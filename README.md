@@ -21,53 +21,36 @@
 
 ResuLens scores a resume against a real job description, tells you exactly what's missing, and can rewrite the resume to close the gap — without inventing facts. It also runs an AI-free structural ATS check, exports resumes as real (not screenshot) PDFs across 5 distinct templates, and includes an admin panel for account management. Every AI call is metered per user through a Redis-backed token-bucket rate limiter built from scratch, not a third-party middleware.
 
+<p align="center"><img src="docs/screenshots/landing.png" width="800" alt="ResuLens landing page"></p>
+
 ## Features
 
-**Resume builder**
-- Multi-section form (contact, summary, education, experience, skills, projects, custom sections) with a live preview panel
-- 5 visually distinct templates — Classic, Jake's Resume, Compact Two-Column, Modern, Harvard — each with its own real jsPDF export (selectable text, clickable links, correct pagination — not a screenshot-to-PDF)
-- Multiple saved resumes per account, a dashboard to switch between them
-- "Import from old resume" — upload a PDF/DOCX/TXT, Gemini faithfully transcribes it into the schema (no rewriting)
+**Auth** — email/password (bcrypt + JWT) and OAuth (Google, GitHub), hand-rolled token-exchange flow, no Passport/SDK. Account suspension is enforceable mid-session regardless of how the token was issued.
 
-**Profile photo pipeline**
-- ImageKit-hosted upload with automatic face-centered cropping
-- Hybrid background removal — tries ImageKit's server-side AI removal first, falls back automatically to an in-browser ML model (`@imgly/background-removal`, ONNX/WASM) if that fails or the free quota is exhausted
-- Client-side canvas compositing to fill the transparent result with a solid color
+<p align="center"><img src="docs/screenshots/auth.png" width="420" alt="Login screen"></p>
 
-**AI analysis**
-- Score a resume (saved or freshly uploaded) against a pasted/uploaded job description — match score, matched/missing keywords, specific suggestions
-- "Improve" — rewrites the resume to close the gap for a given JD, truthfully (no invented employers, numbers, or skills), saves it as a new resume and re-scores it
-- Independent ATS score with no JD needed — deterministic structural checks (parseable text, contact info, standard sections, bullet usage, length) combined with an AI-judged content-quality score (action verbs, quantified impact, clarity)
-- Full analysis history, revisitable per resume
+**Resume builder** — multi-section form (contact, summary, education, experience, skills, projects, custom sections) with a live preview panel. 5 visually distinct templates — Classic, Jake's Resume, Compact Two-Column, Modern, Harvard — each with its own real jsPDF export (selectable text, clickable links, correct pagination — not a screenshot-to-PDF). Multiple saved resumes per account. "Import from old resume" uploads a PDF/DOCX/TXT and has Gemini faithfully transcribe it into the schema (no rewriting).
 
-**Auth**
-- Email/password (bcrypt + JWT) and OAuth (Google, GitHub) — hand-rolled token-exchange flow, no Passport/SDK
-- Account suspension, enforceable mid-session regardless of how the token was issued
+<p align="center"><img src="docs/screenshots/dashboard.png" width="800" alt="Resume dashboard"></p>
+<p align="center"><img src="docs/screenshots/builder.png" width="800" alt="Resume builder with live preview"></p>
 
-**AI rate limiting** (see [design notes](#ai-rate-limiting--design-notes) below)
-- Token-bucket algorithm, atomic via a Redis Lua script, tiered by plan (free/premium)
-- Self-service usage dashboard; admin can reset a user's quota early
+**Profile photo pipeline** — ImageKit-hosted upload with automatic face-centered cropping. Hybrid background removal tries ImageKit's server-side AI removal first, falls back automatically to an in-browser ML model (`@imgly/background-removal`, ONNX/WASM) if that fails or the free quota is exhausted, then a client-side canvas compositor can fill the transparent result with a solid color.
 
-**Admin panel**
-- Platform stats (user/plan/resume/analysis counts, a 14-day signup chart)
-- Searchable user table — manually upgrade/downgrade plans, suspend/reactivate, permanently delete an account (cascades their resumes/analyses/usage log)
-- Per-user detail view — their resumes, recent analyses, recent AI request activity
-- Bootstrapped via a local CLI script, not an in-app "become admin" button (see [Admin access](#admin-access))
+**AI analysis** — score a resume (saved or freshly uploaded) against a pasted/uploaded job description: match score, matched/missing keywords, specific suggestions.
 
-**CI/CD**
-- GitHub Actions: lint + build on every push/PR for both client and server, plus the real server test suite
-- Auto-deploy on merge to `main` — frontend on Vercel, backend on Render
+<p align="center"><img src="docs/screenshots/analyze.png" width="800" alt="Analyze against a job description"></p>
 
-## Screenshots
+"Improve" rewrites the resume to close the gap for a given JD, truthfully (no invented employers, numbers, or skills), saves it as a new resume and re-scores it. Independent ATS score needs no JD at all — deterministic structural checks (parseable text, contact info, standard sections, bullet usage, length) combined with an AI-judged content-quality score (action verbs, quantified impact, clarity). Full analysis history is kept, revisitable per resume.
 
-| | |
-|---|---|
-| ![Landing page](docs/screenshots/landing.png) | ![Login](docs/screenshots/auth.png) |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Resume builder](docs/screenshots/builder.png) |
-| ![Analyze against a job](docs/screenshots/analyze.png) | ![ATS score](docs/screenshots/ats-score.png) |
-| ![Admin panel](docs/screenshots/admin.png) | |
+<p align="center"><img src="docs/screenshots/ats-score.png" width="800" alt="Independent ATS score"></p>
 
-<sub>Full checklist / exact filenames: [`docs/screenshots/README.md`](docs/screenshots/README.md)</sub>
+**AI rate limiting** (see [design notes](#ai-rate-limiting--design-notes) below) — token-bucket algorithm, atomic via a Redis Lua script, tiered by plan (free/premium). Self-service usage dashboard; an admin can reset a user's quota early.
+
+**Admin panel** — platform stats (user/plan/resume/analysis counts, a 14-day signup chart), a searchable user table to manually upgrade/downgrade plans, suspend/reactivate, or permanently delete an account (cascades their resumes/analyses/usage log), and a per-user detail view (their resumes, recent analyses, recent AI request activity). Bootstrapped via a local CLI script, not an in-app "become admin" button (see [Admin access](#admin-access)).
+
+<p align="center"><img src="docs/screenshots/admin.png" width="800" alt="Admin panel"></p>
+
+**CI/CD** — GitHub Actions runs lint + build on every push/PR for both client and server, plus the real server test suite. Auto-deploy on merge to `main` — frontend on Vercel, backend on Render.
 
 ## Architecture
 
