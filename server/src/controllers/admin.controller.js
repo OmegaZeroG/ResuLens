@@ -143,6 +143,26 @@ export const updateUserPlan = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(req.params.id, { plan }, { new: true, runValidators: true })
   if (!user) throw ApiError.notFound('User not found')
 
+  // The rate-limit bucket in Redis is keyed per user, not per plan (see
+  // rateLimiter.js's TOKEN_BUCKET_SCRIPT) — it just holds a token count and a
+  // timestamp. Changing User.plan here changes the *limit* the bucket is
+  // checked against on the next request, but the bucket's current *token
+  // count* carries over untouched, and only refills gradually at the new
+  // plan's rate rather than jumping straight to the new capacity. Without
+  // this, someone upgraded from free (5/hr) to premium (30/hr) mid-hour
+  // would see the higher limit immediately but their actual remaining count
+  // would stay wherever it was on the free tier — confusing, and not what
+  // "upgrade" should feel like. Deleting the key resets them to a full fresh
+  // bucket at the new tier right away. Best-effort: if Redis isn't
+  // configured or this call fails, the plan change itself still succeeds —
+  // matches this app's existing fail-open stance on rate limiting elsewhere.
+  try {
+    const redis = getRedisClient()
+    if (redis) await redis.del(`ratelimit:analyze:${user._id}`)
+  } catch (err) {
+    console.error('[admin] Failed to reset rate-limit bucket after plan change (non-fatal):', err)
+  }
+
   new ApiResponse(200, toAdminUser(user), 'Plan updated').send(res)
 })
 
