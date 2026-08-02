@@ -8,4 +8,10 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  test: {
+    // jsdom, not the default node environment — component tests need a
+    // real (simulated) DOM to render into and query against.
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.js'],
+  },
 })

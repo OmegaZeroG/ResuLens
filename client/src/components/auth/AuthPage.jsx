@@ -157,10 +157,11 @@ export function AuthPage({ initialMode = 'login', onBack }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label htmlFor="auth-name" className="block text-sm font-medium text-slate-700">
                 Name <span className="text-red-400">*</span>
               </label>
               <input
+                id="auth-name"
                 type="text"
                 value={form.name}
                 onChange={update('name')}
@@ -172,10 +173,11 @@ export function AuthPage({ initialMode = 'login', onBack }) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="auth-email" className="block text-sm font-medium text-slate-700">
               Email <span className="text-red-400">*</span>
             </label>
             <input
+              id="auth-email"
               type="email"
               required
               value={form.email}
@@ -187,10 +189,11 @@ export function AuthPage({ initialMode = 'login', onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="auth-password" className="block text-sm font-medium text-slate-700">
               Password <span className="text-red-400">*</span>
             </label>
             <input
+              id="auth-password"
               type="password"
               required
               minLength={8}
@@ -212,10 +215,11 @@ export function AuthPage({ initialMode = 'login', onBack }) {
 
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label htmlFor="auth-confirm-password" className="block text-sm font-medium text-slate-700">
                 Confirm password <span className="text-red-400">*</span>
               </label>
               <input
+                id="auth-confirm-password"
                 type="password"
                 required
                 minLength={8}

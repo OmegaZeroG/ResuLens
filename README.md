@@ -177,7 +177,7 @@ Every Gemini call (`/api/analyze`, `/api/analyze/improve`) is metered per user w
 A few things were deliberately left as-is rather than "fixed," worth calling out rather than leaving silent:
 
 - Deleting a resume (or a user, which cascades their resumes) doesn't clean up the corresponding ImageKit photo file — it's orphaned in the ImageKit account. Flagged in `TASKS.md`, not fixed.
-- No client-side test suite yet — `server/` has a real Vitest suite (rate limiter + ATS rules), the client currently doesn't.
 - No true multi-tenant admin roles (just a single `isAdmin` boolean) — sufficient for this project's scale, not built out further on purpose.
+- Client tests cover the shared UX toolkit, form validation, and the API error-handling pattern (Vitest + React Testing Library, `client/`) — not full coverage of every page, same "test what's actually load-bearing" philosophy as the server's own suite (rate limiter + ATS rules, not every route). Run with `npm test` inside `client/`.
 
 Full task history and the reasoning behind each build decision: `../TASKS.md` and `../PROGRESS.md` (outside this repo, in the parent planning folder).
