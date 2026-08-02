@@ -88,7 +88,7 @@ export function ContactSection({
 
   return (
     <SectionCard title="Contact info">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-slate-100">
           {photoUrl ? (
             <img src={getAvatarUrl(photoUrl, { size: 128 })} alt="Profile" className="h-full w-full object-cover" />
@@ -127,7 +127,7 @@ export function ContactSection({
       {photoUrl && (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
           {!bgPreview ? (
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-700">Background removal</p>
                 <p className="text-xs text-slate-500">
@@ -214,7 +214,7 @@ export function ContactSection({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field
           label="First name"
           value={contact.firstName}
@@ -265,26 +265,28 @@ export function ContactSection({
             const isPortfolio = (link.label || '').trim().toLowerCase() === 'portfolio'
             const Icon = detectLinkIcon(link.label, link.url)
             return (
-              <div key={i} className="flex items-center gap-2">
-                {isPortfolio ? (
-                  <InitialsIcon
-                    initials={getInitials(contact.firstName, contact.lastName)}
-                    className="h-5 w-5 shrink-0"
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  {isPortfolio ? (
+                    <InitialsIcon
+                      initials={getInitials(contact.firstName, contact.lastName)}
+                      className="h-5 w-5 shrink-0"
+                    />
+                  ) : (
+                    <Icon className="h-5 w-5 shrink-0" />
+                  )}
+                  <input
+                    value={link.label}
+                    onChange={(e) => onUpdateLink(i, 'label', e.target.value)}
+                    placeholder="Link name (e.g. LinkedIn)"
+                    className="min-w-0 flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none sm:w-40 sm:flex-none"
                   />
-                ) : (
-                  <Icon className="h-5 w-5 shrink-0" />
-                )}
-                <input
-                  value={link.label}
-                  onChange={(e) => onUpdateLink(i, 'label', e.target.value)}
-                  placeholder="Link name (e.g. LinkedIn)"
-                  className="w-40 shrink-0 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none"
-                />
+                </div>
                 <input
                   value={link.url}
                   onChange={(e) => onUpdateLink(i, 'url', e.target.value)}
                   placeholder="Link value (e.g. linkedin.com/in/you)"
-                  className="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none"
+                  className="min-w-[160px] flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800 focus:border-slate-500 focus:outline-none"
                 />
                 <button
                   type="button"

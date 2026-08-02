@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { listResumes, deleteResume as deleteResumeApi, importResume } from '../../api/resumeApi'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 import { getAvatarUrl } from '../../utils/imagekitTransform'
+import { MenuIcon, CloseIcon } from '../common/icons'
 
 export function ResumeDashboard({
   user,
@@ -20,6 +21,7 @@ export function ResumeDashboard({
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const importInputRef = useRef(null)
 
   const load = useCallback(() => {
@@ -69,77 +71,177 @@ export function ResumeDashboard({
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold text-slate-800">My Resumes</h1>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            disabled={importing}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            {importing ? 'Importing…' : 'Import from old resume'}
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-            className="hidden"
-            onChange={handleImportFile}
-          />
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Analysis history
-          </button>
-          <button
-            type="button"
-            onClick={onOpenUsage}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Usage
-          </button>
-          <button
-            type="button"
-            onClick={onOpenAtsScore}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            ATS score
-          </button>
-          <button
-            type="button"
-            onClick={onOpenAnalyze}
-            className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
-          >
-            Analyze against a job
-          </button>
-          {user?.isAdmin && (
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+          <h1 className="text-lg font-semibold text-slate-800">My Resumes</h1>
+
+          {/* Desktop nav — full button row, hidden below md where it stops fitting */}
+          <div className="hidden items-center gap-3 md:flex">
             <button
               type="button"
-              onClick={onOpenAdmin}
-              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-              Admin
+              {importing ? 'Importing…' : 'Import from old resume'}
             </button>
-          )}
-          {user?.avatarUrl && (
-            <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
-          )}
-          {user?.email && <span className="text-sm text-slate-400">{user.email}</span>}
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Analysis history
+            </button>
+            <button
+              type="button"
+              onClick={onOpenUsage}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Usage
+            </button>
+            <button
+              type="button"
+              onClick={onOpenAtsScore}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              ATS score
+            </button>
+            <button
+              type="button"
+              onClick={onOpenAnalyze}
+              className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            >
+              Analyze against a job
+            </button>
+            {user?.isAdmin && (
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Admin
+              </button>
+            )}
+            {user?.avatarUrl && (
+              <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+            )}
+            {user?.email && <span className="text-sm text-slate-400">{user.email}</span>}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="rounded-md border border-transparent px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+            >
+              Log out
+            </button>
+          </div>
+
+          {/* Mobile menu toggle — everything above collapses into this below md */}
           <button
             type="button"
-            onClick={onLogout}
-            className="rounded-md border border-transparent px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            className="rounded-md border border-slate-300 p-2 text-slate-600 hover:bg-slate-50 md:hidden"
           >
-            Log out
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
         </div>
+
+        {menuOpen && (
+          <div className="space-y-1 border-t border-slate-200 px-4 py-3 md:hidden">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                importInputRef.current?.click()
+              }}
+              disabled={importing}
+              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {importing ? 'Importing…' : 'Import from old resume'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                onOpenHistory()
+              }}
+              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Analysis history
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                onOpenUsage()
+              }}
+              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Usage
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                onOpenAtsScore()
+              }}
+              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              ATS score
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                onOpenAnalyze()
+              }}
+              className="block w-full rounded-md bg-indigo-50 px-3 py-2 text-left text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            >
+              Analyze against a job
+            </button>
+            {user?.isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onOpenAdmin()
+                }}
+                className="block w-full rounded-md bg-slate-800 px-3 py-2 text-left text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Admin
+              </button>
+            )}
+            <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
+              {user?.avatarUrl && (
+                <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+              )}
+              {user?.email && <span className="truncate text-sm text-slate-400">{user.email}</span>}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                onLogout()
+              }}
+              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-500 hover:bg-slate-50"
+            >
+              Log out
+            </button>
+          </div>
+        )}
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+          className="hidden"
+          onChange={handleImportFile}
+        />
       </header>
 
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-500">
             {resumes.length === 0
               ? 'No resumes yet.'

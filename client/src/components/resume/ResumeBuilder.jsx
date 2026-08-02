@@ -67,8 +67,8 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-10 space-y-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onBack}
@@ -79,7 +79,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
           <input
             value={resume.title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-64 rounded-md border border-transparent px-2 py-1 text-lg font-semibold text-slate-800 hover:border-slate-200 focus:border-slate-300 focus:outline-none"
+            className="min-w-0 flex-1 rounded-md border border-transparent px-2 py-1 text-lg font-semibold text-slate-800 hover:border-slate-200 focus:border-slate-300 focus:outline-none sm:w-64 sm:flex-none"
           />
           <select
             value={resume.template}
@@ -94,7 +94,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {(error || exportError) && (
             <span className="text-sm text-red-500">{error || exportError}</span>
           )}
@@ -104,7 +104,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
           <button
             type="button"
             onClick={() => setShowResetConfirm(true)}
-            className="rounded-md border border-transparent px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50"
+            className="rounded-md border border-transparent px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 sm:px-4"
           >
             Reset
           </button>
@@ -112,7 +112,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             type="button"
             onClick={handleDownloadPdf}
             disabled={exportingPdf}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:px-4"
           >
             {exportingPdf ? 'Generating…' : 'Download PDF'}
           </button>
@@ -120,15 +120,15 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             type="button"
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:px-4"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <div className="ml-1 flex items-center gap-2 border-l border-slate-200 pl-3">
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3 sm:ml-1">
             {user?.avatarUrl && (
               <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
             )}
-            {user?.email && <span className="text-sm text-slate-400">{user.email}</span>}
+            {user?.email && <span className="hidden text-sm text-slate-400 sm:inline">{user.email}</span>}
             <button
               type="button"
               onClick={onLogout}
@@ -140,8 +140,8 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
-        <div className="max-h-[calc(100vh-5rem)] space-y-4 overflow-y-auto pr-2">
+      <div className="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:grid-cols-2">
+        <div className="space-y-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-2">
           <ContactSection
             contact={resume.sections.contact}
             onChange={setContactField}
@@ -181,7 +181,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
           />
         </div>
 
-        <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
+        <div className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
           <ActiveTemplate resume={resume} />
         </div>
       </div>
