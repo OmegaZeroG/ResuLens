@@ -5,6 +5,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirm',
+  confirmDisabled = false,
   cancelLabel = 'Cancel',
   danger = false,
   onConfirm,
@@ -36,10 +37,11 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
+            disabled={confirmDisabled}
             className={
               danger
-                ? 'rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600'
-                : 'rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700'
+                ? 'rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50'
+                : 'rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
             }
           >
             {confirmLabel}

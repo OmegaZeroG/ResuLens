@@ -2,6 +2,21 @@ import { useEffect, useState } from 'react'
 import { listUsers, updateUserPlan, getStats, deleteUser } from '../../api/adminApi'
 import { UserDetailModal } from './UserDetailModal'
 import { ConfirmDialog } from '../resume/ConfirmDialog'
+import { SkeletonTableRows, SkeletonLine } from '../common/Skeleton'
+import { EmptyState } from '../common/EmptyState'
+import { ErrorState } from '../common/ErrorState'
+import { useToast } from '../common/Toast'
+import { Spinner } from '../common/Spinner'
+
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" strokeLinecap="round" />
+      <path d="M16 8.5a2.5 2.5 0 1 1 0-5M17 14.2c2.3.4 4 2.2 4 4.8" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 // Only reachable if user.isAdmin is true (see App.jsx / ResumeDashboard.jsx) —
 // but that's just UX, the real gate is the server's requireAdmin middleware.
@@ -21,6 +36,8 @@ export function AdminPage({ onBack }) {
   const [pendingDelete, setPendingDelete] = useState(null) // the user object, or null
   const [deleting, setDeleting] = useState(false)
 
+  const toast = useToast()
+
   function load(q) {
     setLoading(true)
     setError('')
@@ -30,11 +47,16 @@ export function AdminPage({ onBack }) {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    load('')
+  function loadStats() {
+    setStatsError('')
     getStats()
       .then(setStats)
       .catch((err) => setStatsError(err.message || 'Could not load stats'))
+  }
+
+  useEffect(() => {
+    load('')
+    loadStats()
   }, [])
 
   function handleSearchSubmit(e) {
@@ -42,15 +64,19 @@ export function AdminPage({ onBack }) {
     load(query)
   }
 
+  // Each row's own action gets its own feedback (a toast), independent of
+  // the table's load state — one user's plan update failing shouldn't read
+  // as "the whole table is broken," and shouldn't block interacting with
+  // any other row while it's in flight.
   async function handleTogglePlan(user) {
     const nextPlan = user.plan === 'premium' ? 'free' : 'premium'
     setUpdatingId(user.id)
-    setError('')
     try {
       const updated = await updateUserPlan(user.id, nextPlan)
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+      toast.success(`${updated.name || updated.email} moved to ${updated.plan === 'premium' ? 'Premium' : 'Free'}.`)
     } catch (err) {
-      setError(err.message || 'Failed to update plan')
+      toast.error(err.message || 'Failed to update plan')
     } finally {
       setUpdatingId(null)
     }
@@ -63,14 +89,14 @@ export function AdminPage({ onBack }) {
   async function handleConfirmDelete() {
     if (!pendingDelete) return
     setDeleting(true)
-    setError('')
     try {
       await deleteUser(pendingDelete.id)
       setUsers((prev) => prev.filter((u) => u.id !== pendingDelete.id))
       setPendingDelete(null)
       setDetailUserId(null)
+      toast.success('Account deleted.')
     } catch (err) {
-      setError(err.message || 'Failed to delete user')
+      toast.error(err.message || 'Failed to delete user')
     } finally {
       setDeleting(false)
     }
@@ -106,14 +132,33 @@ export function AdminPage({ onBack }) {
       </header>
 
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
-        <StatsPanel stats={stats} error={statsError} />
+        <StatsPanel stats={stats} error={statsError} onRetry={loadStats} />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <ErrorState title="Couldn't load users" message={error} onRetry={() => load(query)} />}
 
         {loading ? (
-          <p className="text-sm text-slate-400">Loading…</p>
-        ) : users.length === 0 ? (
-          <p className="text-sm text-slate-400">No users found.</p>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+            <table className="w-full min-w-[640px] divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-2.5">Name</th>
+                  <th className="px-4 py-2.5">Email</th>
+                  <th className="px-4 py-2.5">Plan</th>
+                  <th className="px-4 py-2.5">Joined</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                <SkeletonTableRows rows={5} cols={5} />
+              </tbody>
+            </table>
+          </div>
+        ) : error ? null : users.length === 0 ? (
+          <EmptyState
+            icon={<UsersIcon />}
+            title={query ? 'No matching users' : 'No users yet'}
+            description={query ? `Nothing matches "${query}".` : 'Once people sign up, they’ll show up here.'}
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
             <table className="w-full min-w-[640px] divide-y divide-slate-100 text-sm">
@@ -174,8 +219,9 @@ export function AdminPage({ onBack }) {
                           type="button"
                           onClick={() => handleTogglePlan(u)}
                           disabled={updatingId === u.id}
-                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                         >
+                          {updatingId === u.id && <Spinner size="xs" />}
                           {updatingId === u.id
                             ? 'Updating…'
                             : u.plan === 'premium'
@@ -212,7 +258,17 @@ export function AdminPage({ onBack }) {
         open={Boolean(pendingDelete)}
         title={`Delete ${pendingDelete?.name || pendingDelete?.email || 'this account'}?`}
         message="Permanently deletes the account and all of its resumes, analyses, and usage history. This can't be undone."
-        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+        confirmLabel={
+          deleting ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="xs" />
+              Deleting…
+            </span>
+          ) : (
+            'Delete'
+          )
+        }
+        confirmDisabled={deleting}
         cancelLabel="Cancel"
         danger
         onConfirm={handleConfirmDelete}
@@ -222,9 +278,27 @@ export function AdminPage({ onBack }) {
   )
 }
 
-function StatsPanel({ stats, error }) {
-  if (error) return <p className="text-sm text-red-500">{error}</p>
-  if (!stats) return <p className="text-sm text-slate-400">Loading stats…</p>
+function StatsPanel({ stats, error, onRetry }) {
+  if (error) return <ErrorState title="Couldn't load platform stats" message={error} onRetry={onRetry} />
+
+  if (!stats) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <SkeletonLine className="h-3 w-3/5" />
+              <SkeletonLine className="mt-2 h-6 w-1/3" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <SkeletonLine className="mb-3 h-3 w-40" />
+          <SkeletonLine className="h-24 w-full" />
+        </div>
+      </div>
+    )
+  }
 
   const maxCount = Math.max(1, ...stats.signups.map((d) => d.count))
 

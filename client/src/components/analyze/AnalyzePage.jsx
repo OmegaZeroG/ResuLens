@@ -5,6 +5,9 @@ import { ScoreRing, KeywordChips } from './AnalysisVisuals'
 import { useRateLimitInfo } from '../../hooks/useRateLimitInfo'
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown'
 import { QuotaBadge } from './QuotaBadge'
+import { Spinner } from '../common/Spinner'
+import { StagedLoader } from '../common/StagedLoader'
+import { ErrorState } from '../common/ErrorState'
 
 const ACCEPTED_FILE_TYPES = '.pdf,.docx,.txt'
 const IMPROVE_THRESHOLD = 85
@@ -18,7 +21,8 @@ export function AnalyzePage({ onBack, onOpenResume }) {
   const [jdText, setJdText] = useState('')
   const [jdFile, setJdFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState('') // API/runAnalysis failures — retryable
+  const [formError, setFormError] = useState('') // "you forgot to fill X" — not a failure, no retry
   const [result, setResult] = useState(null)
   const [improving, setImproving] = useState(false)
   const [improveError, setImproveError] = useState('')
@@ -37,28 +41,10 @@ export function AnalyzePage({ onBack, onOpenResume }) {
       })
   }, [])
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-
-    if (resumeMode === 'saved' && !resumeId) {
-      setError('Choose a saved resume, or switch to uploading a file')
-      return
-    }
-    if (resumeMode === 'upload' && !resumeFile) {
-      setError('Upload a resume file')
-      return
-    }
-    if (jdMode === 'text' && !jdText.trim()) {
-      setError('Paste the job description, or switch to uploading a file')
-      return
-    }
-    if (jdMode === 'upload' && !jdFile) {
-      setError('Upload a job description file')
-      return
-    }
-
+  async function runAnalysis() {
     setSubmitting(true)
+    setError('')
+    setFormError('')
     setResult(null)
     setImproved(null)
     setImproveError('')
@@ -75,6 +61,30 @@ export function AnalyzePage({ onBack, onOpenResume }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setFormError('')
+
+    if (resumeMode === 'saved' && !resumeId) {
+      setFormError('Choose a saved resume, or switch to uploading a file')
+      return
+    }
+    if (resumeMode === 'upload' && !resumeFile) {
+      setFormError('Upload a resume file')
+      return
+    }
+    if (jdMode === 'text' && !jdText.trim()) {
+      setFormError('Paste the job description, or switch to uploading a file')
+      return
+    }
+    if (jdMode === 'upload' && !jdFile) {
+      setFormError('Upload a job description file')
+      return
+    }
+
+    runAnalysis()
   }
 
   // Reuses the exact same resume/JD inputs the analysis just ran with, plus
@@ -217,7 +227,8 @@ export function AnalyzePage({ onBack, onOpenResume }) {
             )}
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {formError && <p className="text-sm text-amber-600">{formError}</p>}
+          {error && <ErrorState title="Analysis failed" message={error} onRetry={runAnalysis} />}
 
           {quotaBlocked && (
             <p className="text-sm text-amber-600">
@@ -228,8 +239,9 @@ export function AnalyzePage({ onBack, onOpenResume }) {
           <button
             type="submit"
             disabled={submitting || quotaBlocked}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
+            {submitting && <Spinner size="xs" />}
             {submitting ? 'Analyzing…' : quotaBlocked ? `Try again in ${formatCountdown(secondsUntilReset)}` : 'Analyze'}
           </button>
         </form>
@@ -242,7 +254,13 @@ export function AnalyzePage({ onBack, onOpenResume }) {
               close the gap.
             </p>
           )}
-          {submitting && <p className="text-sm text-slate-400">Analyzing against the job description…</p>}
+          {submitting && (
+            <StagedLoader
+              active
+              waitingText="Still analyzing against the job description…"
+              longText="Gemini is taking longer than usual — this can take up to a minute, especially right after the server's been idle."
+            />
+          )}
 
           {result && !submitting && (
             <div className="space-y-6">
@@ -286,8 +304,9 @@ export function AnalyzePage({ onBack, onOpenResume }) {
                     type="button"
                     onClick={handleImprove}
                     disabled={improving || quotaBlocked}
-                    className="w-full rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50"
                   >
+                    {improving && <Spinner size="xs" />}
                     {improving
                       ? 'Rewriting your resume for this job…'
                       : quotaBlocked
@@ -301,7 +320,17 @@ export function AnalyzePage({ onBack, onOpenResume }) {
                     your real experience actually lines up with the role. Costs 2x an Analyze
                     against your hourly AI quota.
                   </p>
-                  {improveError && <p className="mt-2 text-sm text-red-500">{improveError}</p>}
+                  {improving && (
+                    <StagedLoader
+                      active
+                      className="mt-2"
+                      waitingText="Still rewriting your resume for this role…"
+                      longText="Taking longer than usual — a full rewrite has more to generate than a plain analysis."
+                    />
+                  )}
+                  {improveError && (
+                    <ErrorState className="mt-2" title="Couldn't generate an improved resume" message={improveError} onRetry={handleImprove} />
+                  )}
                   {quotaBlocked && (
                     <p className="mt-2 text-sm text-amber-600">
                       Out of AI requests for this hour — try again in {formatCountdown(secondsUntilReset)}.

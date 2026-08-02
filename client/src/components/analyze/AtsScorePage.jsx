@@ -5,6 +5,9 @@ import { ScoreRing } from './AnalysisVisuals'
 import { useRateLimitInfo } from '../../hooks/useRateLimitInfo'
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown'
 import { QuotaBadge } from './QuotaBadge'
+import { Spinner } from '../common/Spinner'
+import { StagedLoader } from '../common/StagedLoader'
+import { ErrorState } from '../common/ErrorState'
 
 const ACCEPTED_FILE_TYPES = '.pdf,.docx,.txt'
 
@@ -61,7 +64,8 @@ export function AtsScorePage({ onBack }) {
   const [resumeId, setResumeId] = useState('')
   const [resumeFile, setResumeFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState('') // API failures — retryable
+  const [formError, setFormError] = useState('') // incomplete form — no retry needed
   const [result, setResult] = useState(null)
 
   useEffect(() => {
@@ -80,20 +84,10 @@ export function AtsScorePage({ onBack }) {
   const secondsUntilReset = useCountdown(quotaExhausted ? rateLimitInfo.resetAt : null)
   const quotaBlocked = quotaExhausted && secondsUntilReset > 0
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-
-    if (resumeMode === 'saved' && !resumeId) {
-      setError('Choose a saved resume, or switch to uploading a file')
-      return
-    }
-    if (resumeMode === 'upload' && !resumeFile) {
-      setError('Upload a resume file')
-      return
-    }
-
+  async function runScore() {
     setSubmitting(true)
+    setError('')
+    setFormError('')
     setResult(null)
     try {
       const data = await scoreAts({
@@ -106,6 +100,22 @@ export function AtsScorePage({ onBack }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setFormError('')
+
+    if (resumeMode === 'saved' && !resumeId) {
+      setFormError('Choose a saved resume, or switch to uploading a file')
+      return
+    }
+    if (resumeMode === 'upload' && !resumeFile) {
+      setFormError('Upload a resume file')
+      return
+    }
+
+    runScore()
   }
 
   return (
@@ -177,7 +187,8 @@ export function AtsScorePage({ onBack }) {
             )}
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {formError && <p className="text-sm text-amber-600">{formError}</p>}
+          {error && <ErrorState title="Couldn't score this resume" message={error} onRetry={runScore} />}
 
           {quotaBlocked && (
             <p className="text-sm text-amber-600">
@@ -188,8 +199,9 @@ export function AtsScorePage({ onBack }) {
           <button
             type="submit"
             disabled={submitting || quotaBlocked}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
+            {submitting && <Spinner size="xs" />}
             {submitting ? 'Scoring…' : quotaBlocked ? `Try again in ${formatCountdown(secondsUntilReset)}` : 'Check ATS score'}
           </button>
         </form>
@@ -201,7 +213,13 @@ export function AtsScorePage({ onBack }) {
               that could trip up a real ATS parser, and AI feedback on your writing quality.
             </p>
           )}
-          {submitting && <p className="text-sm text-slate-400">Scoring your resume…</p>}
+          {submitting && (
+            <StagedLoader
+              active
+              waitingText="Still scoring your resume…"
+              longText="Taking longer than usual — this can take up to a minute, especially right after the server's been idle."
+            />
+          )}
 
           {result && !submitting && (
             <div className="space-y-6">

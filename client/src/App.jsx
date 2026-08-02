@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { ToastProvider } from './components/common/Toast'
+import { StagedLoader } from './components/common/StagedLoader'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { AuthPage } from './components/auth/AuthPage'
 import { LandingPage } from './components/landing/LandingPage'
@@ -30,8 +32,14 @@ function AppShell() {
   }
 
   if (loading) {
+    // This is the very first paint (verifying a stored token before we know
+    // whether to show the app or the landing page) — almost always under a
+    // second, so StagedLoader's 400ms delay usually means nothing renders
+    // here at all rather than a flash of a spinner.
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-500">Loading…</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <StagedLoader active waitingText="Signing you in…" longText="Still signing you in — hang tight." />
+      </div>
     )
   }
 
@@ -126,9 +134,11 @@ function AppShell() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ToastProvider>
   )
 }
 

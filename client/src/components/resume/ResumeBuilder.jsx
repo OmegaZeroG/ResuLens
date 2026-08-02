@@ -10,6 +10,9 @@ import { ProjectsSection } from './ProjectsSection'
 import { CustomSectionsSection } from './CustomSectionsSection'
 import { ConfirmDialog } from './ConfirmDialog'
 import { TEMPLATES, getTemplate } from './templates'
+import { Spinner } from '../common/Spinner'
+import { StagedLoader } from '../common/StagedLoader'
+import { useToast } from '../common/Toast'
 
 export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
   const {
@@ -38,6 +41,7 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
   } = useResume(resumeId)
 
   const ActiveTemplate = getTemplate(resume.template).component
+  const toast = useToast()
 
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState(null)
@@ -56,13 +60,27 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
     }
   }
 
+  // `save()` now returns a boolean (see useResume.js) instead of throwing —
+  // a toast confirms success without needing its own error-message
+  // duplication; a failure still shows via the persistent `error` state
+  // next to the buttons (not a toast — a failed save is exactly the kind
+  // of thing that shouldn't be easy to miss/auto-dismiss).
+  async function handleSave() {
+    const ok = await save()
+    if (ok) toast.success('Resume saved.')
+  }
+
   function handleConfirmReset() {
     resetForm()
     setShowResetConfirm(false)
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-500">Loading…</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <StagedLoader active waitingText="Loading your resume…" longText="Still loading — hang tight." />
+      </div>
+    )
   }
 
   return (
@@ -112,16 +130,18 @@ export function ResumeBuilder({ user, onLogout, resumeId, onBack }) {
             type="button"
             onClick={handleDownloadPdf}
             disabled={exportingPdf}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:px-4"
+            className="flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:px-4"
           >
+            {exportingPdf && <Spinner size="xs" />}
             {exportingPdf ? 'Generating…' : 'Download PDF'}
           </button>
           <button
             type="button"
-            onClick={save}
+            onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:px-4"
+            className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:px-4"
           >
+            {saving && <Spinner size="xs" />}
             {saving ? 'Saving…' : 'Save'}
           </button>
           <div className="flex items-center gap-2 border-l border-slate-200 pl-3 sm:ml-1">

@@ -259,13 +259,19 @@ export function useResume(resumeId) {
     return normalized
   }, [resume._id, resume.title, resume.photoUrl, resume.sections])
 
+  // Returns a plain boolean (rather than throwing) so callers — right now
+  // just the Save button — can react to success/failure (e.g. a toast)
+  // without needing to also duplicate the error-message extraction this
+  // hook already does via the `error` state.
   const save = useCallback(async () => {
     setSaving(true)
     setError(null)
     try {
       await persist()
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     } finally {
       setSaving(false)
     }

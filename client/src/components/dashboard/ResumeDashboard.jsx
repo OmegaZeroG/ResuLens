@@ -3,6 +3,21 @@ import { listResumes, deleteResume as deleteResumeApi, importResume } from '../.
 import { ConfirmDialog } from '../resume/ConfirmDialog'
 import { getAvatarUrl } from '../../utils/imagekitTransform'
 import { MenuIcon, CloseIcon } from '../common/icons'
+import { SkeletonCardGrid } from '../common/Skeleton'
+import { EmptyState } from '../common/EmptyState'
+import { ErrorState } from '../common/ErrorState'
+import { useToast } from '../common/Toast'
+import { Spinner } from '../common/Spinner'
+
+function DocumentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M6 3.5h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z" strokeLinejoin="round" />
+      <path d="M14 3.5v4h4" strokeLinejoin="round" />
+      <path d="M8.5 12.5h7M8.5 16h4.5" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 export function ResumeDashboard({
   user,
@@ -19,10 +34,10 @@ export function ResumeDashboard({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
-  const [deleting, setDeleting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const importInputRef = useRef(null)
+  const toast = useToast()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -42,30 +57,37 @@ export function ResumeDashboard({
     e.target.value = '' // allow re-selecting the same file later
     if (!file) return
     setImporting(true)
-    setError('')
     try {
       const imported = await importResume(file)
       // Opens straight in the builder, already prefilled — the whole point
       // is skipping retyping, not landing back on the dashboard to click Edit.
       onOpenResume(imported._id)
     } catch (err) {
-      setError(err.message)
+      // A toast, not the page-level ErrorState — the dashboard itself is
+      // still fine, only this one action failed, and the user's eyes are
+      // on the button they just clicked, not the top of the page.
+      toast.error(err.message || 'Import failed. Please try again.')
     } finally {
       setImporting(false)
     }
   }
 
+  // Optimistic delete: the card disappears the instant you confirm, no
+  // spinner wait — deleting a resume you already decided to delete should
+  // feel instant. If the request actually fails (rare), the card comes back
+  // and a toast explains why, rather than silently leaving the UI wrong.
   async function handleConfirmDelete() {
     if (!pendingDeleteId) return
-    setDeleting(true)
+    const id = pendingDeleteId
+    const previous = resumes
+    setResumes((prev) => prev.filter((r) => r._id !== id))
+    setPendingDeleteId(null)
     try {
-      await deleteResumeApi(pendingDeleteId)
-      setResumes((prev) => prev.filter((r) => r._id !== pendingDeleteId))
-      setPendingDeleteId(null)
+      await deleteResumeApi(id)
+      toast.success('Resume deleted.')
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setDeleting(false)
+      setResumes(previous)
+      toast.error(err.message || 'Could not delete that resume — it has been restored.')
     }
   }
 
@@ -81,8 +103,9 @@ export function ResumeDashboard({
               type="button"
               onClick={() => importInputRef.current?.click()}
               disabled={importing}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
+              {importing && <Spinner size="xs" />}
               {importing ? 'Importing…' : 'Import from old resume'}
             </button>
             <button
@@ -156,8 +179,9 @@ export function ResumeDashboard({
                 importInputRef.current?.click()
               }}
               disabled={importing}
-              className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="flex w-full items-center gap-1.5 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
+              {importing && <Spinner size="xs" />}
               {importing ? 'Importing…' : 'Import from old resume'}
             </button>
             <button
@@ -256,14 +280,25 @@ export function ResumeDashboard({
           </button>
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+        {error ? (
+          <ErrorState
+            title="Couldn't load your resumes"
+            message={error}
+            onRetry={load}
+            className="mb-4"
+          />
+        ) : null}
 
         {loading ? (
-          <p className="text-sm text-slate-400">Loading…</p>
-        ) : resumes.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-400">
-            You haven't created a resume yet. Click "New Resume" to get started.
-          </div>
+          <SkeletonCardGrid count={3} />
+        ) : error ? null : resumes.length === 0 ? (
+          <EmptyState
+            icon={<DocumentIcon />}
+            title="No resumes yet"
+            description="Build one from scratch, or import an existing resume file and let ResuLens fill it in for you."
+            actionLabel="+ New Resume"
+            onAction={onCreateResume}
+          />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {resumes.map((r) => (
@@ -310,11 +345,15 @@ export function ResumeDashboard({
         )}
       </div>
 
+      {/* Confirm still guards the action (deleting is destructive and
+          irreversible) — but once confirmed, removal is optimistic (see
+          handleConfirmDelete), so this dialog doesn't need its own
+          "Deleting…" loading label; it's just gone. */}
       <ConfirmDialog
         open={Boolean(pendingDeleteId)}
         title="Delete this resume?"
         message="This permanently removes it from your account. This can't be undone."
-        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+        confirmLabel="Delete"
         cancelLabel="Cancel"
         danger
         onConfirm={handleConfirmDelete}

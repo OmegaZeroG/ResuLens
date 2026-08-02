@@ -2,6 +2,30 @@ import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { googleAuthUrl, githubAuthUrl } from '../../api/authApi'
 import { Logo } from '../common/Logo'
+import { Spinner } from '../common/Spinner'
+import { FieldError } from '../common/ErrorState'
+
+// Mirrors the server's actual rules (see auth.controller.js) — a basic
+// email shape check and an 8-character minimum. Deliberately not inventing
+// stricter-looking rules (uppercase/symbol requirements) the backend
+// doesn't actually enforce; a checklist that lies about what's required is
+// worse than no checklist.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function RequirementRow({ met, children }) {
+  return (
+    <li className={`flex items-center gap-1.5 text-xs ${met ? 'text-emerald-600' : 'text-slate-400'}`}>
+      <span
+        className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[9px] leading-none ${
+          met ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300'
+        }`}
+      >
+        {met ? '✓' : ''}
+      </span>
+      {children}
+    </li>
+  )
+}
 
 function GoogleIcon() {
   return (
@@ -38,20 +62,34 @@ export function AuthPage({ initialMode = 'login', onBack }) {
   const { login, signup, authError, clearAuthError } = useAuth()
   const [mode, setMode] = useState(initialMode)
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
+  const [touched, setTouched] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
+  const markTouched = (field) => () => setTouched((t) => ({ ...t, [field]: true }))
+
+  const emailValid = EMAIL_RE.test(form.email)
+  const passwordLongEnough = form.password.length >= 8
+  const passwordsMatch = form.confirmPassword.length > 0 && form.password === form.confirmPassword
+
+  // Signup can't be submitted until every real server-enforced rule is
+  // already satisfied client-side — no point letting someone hit "Sign up"
+  // just to bounce off a 400 for something the form already knew was wrong.
+  // Login stays permissive (just non-empty) since a wrong password is only
+  // discoverable server-side anyway.
+  const canSubmit =
+    mode === 'login'
+      ? form.email.length > 0 && form.password.length > 0
+      : emailValid && passwordLongEnough && passwordsMatch && form.name.trim().length > 0
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     clearAuthError()
+    setTouched({ name: true, email: true, password: true, confirmPassword: true })
 
-    if (mode === 'signup' && form.password !== form.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
+    if (!canSubmit) return
 
     setSubmitting(true)
     try {
@@ -70,6 +108,7 @@ export function AuthPage({ initialMode = 'login', onBack }) {
   function toggleMode() {
     setMode((m) => (m === 'login' ? 'signup' : 'login'))
     setError('')
+    setTouched({})
     clearAuthError()
   }
 
@@ -118,61 +157,93 @@ export function AuthPage({ initialMode = 'login', onBack }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">Name</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Name <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
                 value={form.name}
                 onChange={update('name')}
+                onBlur={markTouched('name')}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
               />
+              <FieldError>{touched.name && form.name.trim().length === 0 ? 'Name is required.' : null}</FieldError>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Email <span className="text-red-400">*</span>
+            </label>
             <input
               type="email"
               required
               value={form.email}
               onChange={update('email')}
+              onBlur={markTouched('email')}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             />
+            <FieldError>{touched.email && form.email.length > 0 && !emailValid ? 'Enter a valid email address.' : null}</FieldError>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Password</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Password <span className="text-red-400">*</span>
+            </label>
             <input
               type="password"
               required
               minLength={8}
               value={form.password}
               onChange={update('password')}
+              onBlur={markTouched('password')}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             />
-            {mode === 'signup' && <p className="mt-1 text-xs text-slate-400">At least 8 characters.</p>}
+            {mode === 'signup' ? (
+              <ul className="mt-1.5 space-y-0.5">
+                <RequirementRow met={passwordLongEnough}>At least 8 characters</RequirementRow>
+              </ul>
+            ) : (
+              <FieldError>
+                {touched.password && form.password.length === 0 ? 'Password is required.' : null}
+              </FieldError>
+            )}
           </div>
 
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">Confirm password</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Confirm password <span className="text-red-400">*</span>
+              </label>
               <input
                 type="password"
                 required
                 minLength={8}
                 value={form.confirmPassword}
                 onChange={update('confirmPassword')}
+                onBlur={markTouched('confirmPassword')}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
               />
+              <FieldError>
+                {touched.confirmPassword && form.confirmPassword.length > 0 && !passwordsMatch
+                  ? 'Passwords do not match.'
+                  : null}
+              </FieldError>
             </div>
           )}
 
-          {displayError && <p className="text-sm text-red-500">{displayError}</p>}
+          {displayError && (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              {displayError}
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            disabled={submitting || !canSubmit}
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {submitting && <Spinner size="xs" />}
             {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Sign up'}
           </button>
         </form>
