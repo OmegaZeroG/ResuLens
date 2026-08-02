@@ -1,0 +1,22 @@
+name: Keep Render Awake
+
+# Render's free tier spins the backend down after ~15 minutes of no
+# incoming requests — the next real request then eats a 30-50s cold start.
+# This pings the health endpoint every 10 minutes (comfortably under the
+# 15-minute idle window) so a real user almost never hits a cold start.
+# GitHub's own scheduler can run a few minutes late under load, hence 10
+# instead of cutting it closer to 15. continue-on-error means a single
+# missed/failed ping doesn't fail the workflow or spam a red X on the repo.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -sf -o /dev/null -w "status=%{http_code}\n" https://resulens-brl0.onrender.com/api/health
+        continue-on-error: true

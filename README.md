@@ -34,7 +34,7 @@ ResuLens scores a resume against a real job description, tells you exactly what'
 <p align="center"><img src="docs/screenshots/dashboard.png" width="800" alt="Resume dashboard"></p>
 <p align="center"><img src="docs/screenshots/builder.png" width="800" alt="Resume builder with live preview"></p>
 
-**Profile photo pipeline** — ImageKit-hosted upload with automatic face-centered cropping. Hybrid background removal tries ImageKit's server-side AI removal first, falls back automatically to an in-browser ML model (`@imgly/background-removal`, ONNX/WASM) if that fails or the free quota is exhausted, then a client-side canvas compositor can fill the transparent result with a solid color.
+**Profile photo pipeline** — ImageKit-hosted upload with automatic face-centered cropping (`fo-face` transform, applied at render time everywhere the photo appears — form, live preview, dashboard, PDF export). A "Remove background" step tries ImageKit's server-side AI removal first; on any failure (quota, timeout, non-200) it falls away automatically to an in-browser ML model (`@imgly/background-removal`, ONNX/WASM, code-split so it only loads when actually used) — the UI labels which path ran so it's never a mystery. The transparent result can then be filled with one of four presets or a custom color picker via a client-side `<canvas>` compositor, previewed before committing. Nothing is uploaded until "Apply" is clicked, and applying re-runs the normal photo-upload pipeline (old file deleted from ImageKit, new one takes its place) rather than creating a separate derived asset.
 
 **AI analysis** — score a resume (saved or freshly uploaded) against a pasted/uploaded job description: match score, matched/missing keywords, specific suggestions.
 
