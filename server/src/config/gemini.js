@@ -2,9 +2,6 @@ import { GoogleGenAI } from '@google/genai'
 
 let client = null
 
-// Lazily constructed, same pattern as ImageKit's client — the app can still
-// boot without a Gemini key configured, it just errors when analysis is
-// actually attempted, with a message pointing at what to fix.
 export function getGeminiClient() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not set — add your Gemini API key to server/.env')
@@ -15,10 +12,16 @@ export function getGeminiClient() {
   return client
 }
 
-// Uses Google's "latest" alias instead of pinning a specific version like
-// "gemini-2.5-flash" — Gemini model versions get retired on a schedule
-// (sometimes early — 2.5-flash was pulled ahead of its own posted deadline),
-// and gemini-flash-latest is hot-swapped by Google to always point at their
-// current Flash model, so this doesn't silently break every few months.
-// Override via GEMINI_MODEL in .env if you ever want to pin a specific version.
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest'
+// Fallback chain — tried in order until one works
+// Override first model via GEMINI_MODEL in .env
+export const MODEL_FALLBACKS = [
+  process.env.GEMINI_MODEL,        // .env override goes first if set
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-3.0-flash',
+].filter(Boolean) // remove undefined if GEMINI_MODEL not set
+
+// Keep this for any code that imports GEMINI_MODEL directly
+export const GEMINI_MODEL = MODEL_FALLBACKS[0]
